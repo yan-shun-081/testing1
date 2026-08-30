@@ -1,0 +1,177 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>YAN1 Python Executor</title>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #f5f5f5;
+        padding: 30px;
+    }
+
+    .box {
+        max-width: 600px;
+        margin: auto;
+        background: white;
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+        margin-top: 0;
+    }
+
+    #status {
+        font-weight: bold;
+        margin-bottom: 20px;
+    }
+
+    #output {
+        background: #111;
+        color: white;
+        padding: 15px;
+        min-height: 100px;
+        border-radius: 8px;
+        white-space: pre-wrap;
+    }
+</style>
+</head>
+
+<body>
+
+<div class="box">
+
+    <h2>YAN1 Python App</h2>
+
+    <div id="status">
+        Connecting to YAN1 App...
+    </div>
+
+    <h3>Python Result</h3>
+
+    <pre id="output">Waiting for result...</pre>
+
+</div>
+
+<script>
+
+const statusElement = document.getElementById("status");
+const outputElement = document.getElementById("output");
+
+
+// Connect to the YAN1 Android app
+const socket = new WebSocket("ws://127.0.0.1:8765");
+
+
+socket.onopen = function () {
+
+    console.log("Connected to YAN1 App");
+
+    statusElement.textContent = "Connected to YAN1 App";
+
+    // Ask the user for their name
+    const name = prompt("What is your name?");
+
+    if (!name) {
+        outputElement.textContent = "No name entered.";
+        return;
+    }
+
+
+    // Create Python code
+    const pythonCode = `
+name = ${JSON.stringify(name)}
+
+print(f"Hello, {name}! Welcome to Python.")
+`;
+
+
+    console.log("Sending Python code:");
+
+    console.log(pythonCode);
+
+
+    // Send Python code to Android app
+    socket.send(JSON.stringify({
+
+        type: "execute_python",
+
+        id: "website_python_request",
+
+        code: pythonCode
+
+    }));
+
+
+    outputElement.textContent = "Python code sent. Waiting for result...";
+};
+
+
+// Receive result from Android app
+socket.onmessage = function (event) {
+
+    console.log("Received:", event.data);
+
+    try {
+
+        const data = JSON.parse(event.data);
+
+        if (data.output !== undefined) {
+
+            outputElement.textContent = data.output;
+
+        } else if (data.error !== undefined) {
+
+            outputElement.textContent =
+                "Python Error:\n\n" + data.error;
+
+        } else {
+
+            outputElement.textContent =
+                JSON.stringify(data, null, 2);
+
+        }
+
+    } catch (error) {
+
+        outputElement.textContent = event.data;
+
+    }
+};
+
+
+// Connection error
+socket.onerror = function (error) {
+
+    console.error("WebSocket error:", error);
+
+    statusElement.textContent =
+        "Could not connect to YAN1 App";
+
+    outputElement.textContent =
+        "Make sure the YAN1 app is running and WebSocket server is listening on port 8765.";
+
+};
+
+
+// Connection closed
+socket.onclose = function () {
+
+    console.log("Connection closed");
+
+    statusElement.textContent =
+        "Disconnected from YAN1 App";
+
+};
+
+</script>
+
+</body>
+</html>
+```
