@@ -220,17 +220,23 @@
     const questionEl = document.getElementById("question");
     const logGrid = document.getElementById("logGrid");
 
+    function handleAIResult(result) {
+      outputEl.textContent = result;
+      statusEl.textContent = "AI response received";
+      addLog("app", "Result returned to website", "Model finished");
+    }
+
     function appReady() {
-      return !!(window.Qwen && typeof window.Qwen.ask === "function");
+      return !!(window.Qwen && typeof window.Qwen.askAsync === "function");
     }
 
     function addLog(type, websiteText, appText) {
-      const row = document.createElement("div");
-      row.className = "grid-cell";
-
       const typeCell = document.createElement("div");
       typeCell.className = "grid-cell";
-      typeCell.innerHTML = '<span class="tag ' + (type === "website" ? "website-tag" : type === "app" ? "app-tag" : "system-tag") + '">' + type.charAt(0).toUpperCase() + type.slice(1) + '</span>';
+      typeCell.innerHTML = '<span class="tag ' + (
+        type === "website" ? "website-tag" :
+        type === "app" ? "app-tag" : "system-tag"
+      ) + '">' + type.charAt(0).toUpperCase() + type.slice(1) + '</span>';
 
       const websiteCell = document.createElement("div");
       websiteCell.className = "grid-cell";
@@ -272,9 +278,7 @@
         if (appReady()) {
           updateStatus("Connected to app AI bridge");
           addLog("website", "Question sent to app", "Bridge ready");
-          const result = window.Qwen.ask(prompt.trim());
-          outputEl.textContent = result;
-          addLog("app", "Received result", "Model generated answer");
+          window.Qwen.askAsync(prompt.trim(), "handleAIResult");
         } else {
           updateStatus("Open this page inside the Android app WebView", true);
           outputEl.textContent = "This page must be opened inside the Android app. The AI bridge is not available in a normal browser.";
