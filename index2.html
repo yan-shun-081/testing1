@@ -1,52 +1,170 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>YAN1 Remote Python</title>
-    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-    <style>
-        body { background: #111; color: #0f0; font-family: monospace; padding: 20px; }
-        textarea { width: 100%; height: 200px; background: #000; color: #fff; border: 1px solid #333; }
-        button { padding: 10px; background: #222; color: #fff; cursor: pointer; border: 1px solid #444; }
-        button:disabled { color: #555; }
-        #log { background: #000; padding: 10px; border: 1px solid #222; margin-top: 20px; white-space: pre-wrap; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Qwen Offline AI</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+      display: flex;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      width: 100%;
+      max-width: 900px;
+      background: #111827;
+      border: 1px solid #374151;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+    h2 {
+      margin: 0 0 16px;
+      font-size: 24px;
+      color: #f9fafb;
+    }
+    .status {
+      font-size: 14px;
+      margin-bottom: 12px;
+      color: #93c5fd;
+      min-height: 20px;
+    }
+    textarea {
+      width: 100%;
+      min-height: 150px;
+      border-radius: 12px;
+      border: 1px solid #4b5563;
+      background: #0b1220;
+      color: white;
+      padding: 14px;
+      font-size: 16px;
+      resize: vertical;
+    }
+    .row {
+      display: flex;
+      gap: 12px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+    button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 12px 18px;
+      border-radius: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button.secondary {
+      background: #374151;
+    }
+    .output {
+      margin-top: 20px;
+      background: #0b1220;
+      border: 1px solid #374151;
+      border-radius: 12px;
+      min-height: 180px;
+      padding: 16px;
+      white-space: pre-wrap;
+      line-height: 1.6;
+      color: #e5e7eb;
+    }
+    .loading {
+      color: #fbbf24;
+    }
+  </style>
 </head>
 <body>
-    <h1>Remote Phone Engine</h1>
-    <div id="status">Connecting to Phone...</div>
-    <textarea id="code">print("Hello from the Web!")
-import requests
-print(f"Phone Public IP: {requests.get('https://api.ipify.org').text}")
-    </textarea><br>
-    <button id="runBtn" onclick="run()" disabled>Connect First</button>
-    <div id="log">Logs will appear here...</div>
+  <div class="container">
+    <h2>Offline AI</h2>
 
-    <script>
-        const peer = new Peer();
-        let conn;
-        const TARGET_ID = 'yan1-app-remote-engine';
+    <div class="status" id="status">Checking app connection...</div>
 
-        peer.on('open', () => {
-            console.log('Connecting to: ' + TARGET_ID);
-            conn = peer.connect(TARGET_ID);
-            
-            conn.on('open', () => {
-                document.getElementById('status').innerText = "ONLINE: Connected to Phone";
-                document.getElementById('runBtn').disabled = false;
-                document.getElementById('runBtn').innerText = "Execute on Phone";
-            });
+    <textarea id="question" placeholder="Type your question here...">What is artificial intelligence in simple words?</textarea>
 
-            conn.on('data', (data) => {
-                const res = JSON.parse(data);
-                document.getElementById('log').innerText += "\n[Result] " + res.output;
-            });
-        });
+    <div class="row">
+      <button id="sendBtn">Send</button>
+      <button id="clearBtn" class="secondary">Clear</button>
+    </div>
 
-        function run() {
-            const code = document.getElementById('code').value;
-            conn.send(JSON.stringify({ id: Date.now().toString(), code: code }));
-            document.getElementById('log').innerText += "\n[Sent] Code sent to phone...";
+    <div class="output" id="output">Answer will appear here...</div>
+  </div>
+
+  <script>
+    const statusEl = document.getElementById("status");
+    const outputEl = document.getElementById("output");
+    const questionEl = document.getElementById("question");
+
+    function appReady() {
+      return !!(window.Qwen && typeof window.Qwen.ask === "function");
+    }
+
+    function updateStatus(text, isWarning = false) {
+      statusEl.textContent = text;
+      statusEl.style.color = isWarning ? "#fbbf24" : "#93c5fd";
+    }
+
+    function setLoading(value) {
+      if (value) {
+        outputEl.classList.add("loading");
+        outputEl.textContent = "Thinking...";
+      } else {
+        outputEl.classList.remove("loading");
+      }
+    }
+
+    function askAI(prompt) {
+      if (!prompt || !prompt.trim()) {
+        outputEl.textContent = "Please enter a question first.";
+        return;
+      }
+
+      setLoading(true);
+
+      try {
+        if (appReady()) {
+          updateStatus("Connected to app AI bridge");
+          const result = window.Qwen.ask(prompt.trim());
+          outputEl.textContent = result;
+        } else {
+          updateStatus("Open this page inside the Android app WebView", true);
+          outputEl.textContent = "This page must be opened inside the Android app. The AI bridge is not available in a normal browser.";
         }
-    </script>
+      } catch (e) {
+        outputEl.textContent = "Error: " + (e && e.message ? e.message : String(e));
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    document.getElementById("sendBtn").addEventListener("click", function () {
+      askAI(questionEl.value);
+    });
+
+    document.getElementById("clearBtn").addEventListener("click", function () {
+      questionEl.value = "";
+      outputEl.textContent = "Answer will appear here...";
+      updateStatus("Ready");
+    });
+
+    questionEl.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+        askAI(questionEl.value);
+      }
+    });
+
+    if (appReady()) {
+      updateStatus("App bridge ready");
+    } else {
+      updateStatus("Open this page inside the Android app WebView", true);
+    }
+  </script>
 </body>
 </html>
