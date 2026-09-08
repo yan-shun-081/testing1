@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Qwen Offline AI</title>
+  <title>Offline AI</title>
   <style>
     * { box-sizing: border-box; }
 
@@ -152,22 +152,12 @@
       color: white;
     }
 
-    .website-tag {
-      background: #2563eb;
-    }
-
-    .app-tag {
-      background: #10b981;
-    }
-
-    .system-tag {
-      background: #f59e0b;
-    }
+    .website-tag { background: #2563eb; }
+    .app-tag { background: #10b981; }
+    .system-tag { background: #f59e0b; }
 
     @media (max-width: 900px) {
-      .main-grid {
-        grid-template-columns: 1fr;
-      }
+      .main-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -220,23 +210,14 @@
     const questionEl = document.getElementById("question");
     const logGrid = document.getElementById("logGrid");
 
-    function handleAIResult(result) {
-      outputEl.textContent = result;
-      statusEl.textContent = "AI response received";
-      addLog("app", "Result returned to website", "Model finished");
-    }
-
-    function appReady() {
-      return !!(window.Qwen && typeof window.Qwen.askAsync === "function");
-    }
-
     function addLog(type, websiteText, appText) {
       const typeCell = document.createElement("div");
       typeCell.className = "grid-cell";
-      typeCell.innerHTML = '<span class="tag ' + (
-        type === "website" ? "website-tag" :
-        type === "app" ? "app-tag" : "system-tag"
-      ) + '">' + type.charAt(0).toUpperCase() + type.slice(1) + '</span>';
+      typeCell.innerHTML =
+        '<span class="tag ' +
+        (type === "website" ? "website-tag" :
+         type === "app" ? "app-tag" : "system-tag") +
+        '">' + type.charAt(0).toUpperCase() + type.slice(1) + '</span>';
 
       const websiteCell = document.createElement("div");
       websiteCell.className = "grid-cell";
@@ -265,8 +246,55 @@
       }
     }
 
-    function askAI(prompt) {
-      if (!prompt || !prompt.trim()) {
+    function qwenBridgeReady() {
+      return !!(window.Qwen && (typeof window.Qwen.askAsync === "function" || typeof window.Qwen.ask === "function"));
+    }
+
+    function androidBridgeReady() {
+      return !!(window.Android && typeof window.Android.runPython === "function");
+    }
+
+    function appReady() {
+      return qwenBridgeReady() || androidBridgeReady();
+    }
+
+    function callApp(prompt) {
+      return new Promise((resolve, reject) => {
+        try {
+          if (window.Qwen) {
+            if (typeof window.Qwen.askAsync === "function") {
+              const callbackName = "__yan1_ai_cb_" + Date.now();
+
+              window[callbackName] = function (result) {
+                delete window[callbackName];
+                resolve(String(result));
+              };
+
+              window.Qwen.askAsync(prompt, callbackName);
+              return;
+            }
+
+            if (typeof window.Qwen.ask === "function") {
+              resolve(String(window.Qwen.ask(prompt)));
+              return;
+            }
+          }
+
+          if (window.Android && typeof window.Android.runPython === "function") {
+            resolve(String(window.Android.runPython(prompt)));
+            return;
+          }
+
+          reject(new Error("No app bridge available."));
+        } catch (e) {
+          reject(e);
+        }
+      });
+    }
+
+    async function askAI(prompt) {
+      const text = (prompt || "").trim();
+      if (!text) {
         outputEl.textContent = "Please enter a question first.";
         addLog("system", "Empty question blocked", "Request ignored");
         return;
@@ -275,18 +303,27 @@
       setLoading(true);
 
       try {
-        if (appReady()) {
+        if (qwenBridgeReady()) {
           updateStatus("Connected to app AI bridge");
-          addLog("website", "Question sent to app", "Bridge ready");
-          window.Qwen.askAsync(prompt.trim(), "handleAIResult");
+          addLog("website", "Question sent to app", "Qwen bridge ready");
+        } else if (androidBridgeReady()) {
+          updateStatus("Connected to Android bridge");
+          addLog("website", "Question sent to app", "Android bridge ready");
         } else {
           updateStatus("Open this page inside the Android app WebView", true);
           outputEl.textContent = "This page must be opened inside the Android app. The AI bridge is not available in a normal browser.";
           addLog("system", "Browser mode detected", "Bridge missing");
+          return;
         }
+
+        const result = await callApp(text);
+        outputEl.textContent = result;
+        addLog("app", "AI result received", "Model completed");
+        updateStatus("AI response received");
       } catch (e) {
         outputEl.textContent = "Error: " + (e && e.message ? e.message : String(e));
         addLog("system", "JavaScript error", "Bridge failed");
+        updateStatus("Bridge failed", true);
       } finally {
         setLoading(false);
       }
@@ -309,9 +346,12 @@
       }
     });
 
-    if (appReady()) {
+    if (qwenBridgeReady()) {
       updateStatus("App bridge ready");
-      addLog("system", "Bridge detected", "Native AI available");
+      addLog("system", "Bridge detected", "Qwen available");
+    } else if (androidBridgeReady()) {
+      updateStatus("App bridge ready");
+      addLog("system", "Bridge detected", "Android available");
     } else {
       updateStatus("Open this page inside the Android app WebView", true);
       addLog("system", "WebView not connected", "Bridge not found");
