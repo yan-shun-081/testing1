@@ -6,6 +6,7 @@
   <title>Qwen Offline AI</title>
   <style>
     * { box-sizing: border-box; }
+
     body {
       margin: 0;
       font-family: Arial, sans-serif;
@@ -15,26 +16,44 @@
       justify-content: center;
       padding: 20px;
     }
+
     .container {
       width: 100%;
-      max-width: 900px;
+      max-width: 1100px;
       background: #111827;
       border: 1px solid #374151;
       border-radius: 16px;
       padding: 20px;
       box-shadow: 0 10px 30px rgba(0,0,0,0.25);
     }
+
     h2 {
       margin: 0 0 16px;
       font-size: 24px;
       color: #f9fafb;
     }
+
     .status {
       font-size: 14px;
       margin-bottom: 12px;
       color: #93c5fd;
       min-height: 20px;
     }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .left-panel, .right-panel {
+      background: #0b1220;
+      border: 1px solid #374151;
+      border-radius: 12px;
+      padding: 16px;
+    }
+
     textarea {
       width: 100%;
       min-height: 150px;
@@ -46,12 +65,14 @@
       font-size: 16px;
       resize: vertical;
     }
+
     .row {
       display: flex;
       gap: 12px;
       margin-top: 12px;
       flex-wrap: wrap;
     }
+
     button {
       background: #2563eb;
       color: white;
@@ -62,9 +83,11 @@
       cursor: pointer;
       font-weight: 600;
     }
+
     button.secondary {
       background: #374151;
     }
+
     .output {
       margin-top: 20px;
       background: #0b1220;
@@ -76,8 +99,75 @@
       line-height: 1.6;
       color: #e5e7eb;
     }
+
     .loading {
       color: #fbbf24;
+    }
+
+    .log-box {
+      margin-top: 24px;
+      background: #0b1220;
+      border: 1px solid #374151;
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .log-box h3 {
+      margin: 0 0 12px;
+      color: #f9fafb;
+      font-size: 18px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 80px 1fr 1fr;
+      gap: 8px;
+      border: 1px solid #374151;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #111827;
+    }
+
+    .grid-header {
+      background: #1f2937;
+      color: #f9fafb;
+      font-weight: 700;
+      padding: 10px 12px;
+    }
+
+    .grid-cell {
+      padding: 10px 12px;
+      border-top: 1px solid #374151;
+      background: #0b1220;
+      color: #d1d5db;
+      word-break: break-word;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      color: white;
+    }
+
+    .website-tag {
+      background: #2563eb;
+    }
+
+    .app-tag {
+      background: #10b981;
+    }
+
+    .system-tag {
+      background: #f59e0b;
+    }
+
+    @media (max-width: 900px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
@@ -87,23 +177,72 @@
 
     <div class="status" id="status">Checking app connection...</div>
 
-    <textarea id="question" placeholder="Type your question here...">What is artificial intelligence in simple words?</textarea>
+    <div class="main-grid">
+      <div class="left-panel">
+        <textarea id="question" placeholder="Type your question here...">What is artificial intelligence in simple words?</textarea>
 
-    <div class="row">
-      <button id="sendBtn">Send</button>
-      <button id="clearBtn" class="secondary">Clear</button>
+        <div class="row">
+          <button id="sendBtn">Send</button>
+          <button id="clearBtn" class="secondary">Clear</button>
+        </div>
+
+        <div class="output" id="output">Answer will appear here...</div>
+      </div>
+
+      <div class="right-panel">
+        <div class="log-box">
+          <h3>Activity Log</h3>
+          <div class="grid" id="logGrid">
+            <div class="grid-header">Type</div>
+            <div class="grid-header">Website</div>
+            <div class="grid-header">App</div>
+
+            <div class="grid-cell"><span class="tag system-tag">System</span></div>
+            <div class="grid-cell">Page loaded</div>
+            <div class="grid-cell">WebView opened</div>
+
+            <div class="grid-cell"><span class="tag website-tag">Website</span></div>
+            <div class="grid-cell">Waiting for user input</div>
+            <div class="grid-cell">Ready for AI call</div>
+
+            <div class="grid-cell"><span class="tag app-tag">App</span></div>
+            <div class="grid-cell">Bridge available</div>
+            <div class="grid-cell">Native model ready</div>
+          </div>
+        </div>
+      </div>
     </div>
-
-    <div class="output" id="output">Answer will appear here...</div>
   </div>
 
   <script>
     const statusEl = document.getElementById("status");
     const outputEl = document.getElementById("output");
     const questionEl = document.getElementById("question");
+    const logGrid = document.getElementById("logGrid");
 
     function appReady() {
       return !!(window.Qwen && typeof window.Qwen.ask === "function");
+    }
+
+    function addLog(type, websiteText, appText) {
+      const row = document.createElement("div");
+      row.className = "grid-cell";
+
+      const typeCell = document.createElement("div");
+      typeCell.className = "grid-cell";
+      typeCell.innerHTML = '<span class="tag ' + (type === "website" ? "website-tag" : type === "app" ? "app-tag" : "system-tag") + '">' + type.charAt(0).toUpperCase() + type.slice(1) + '</span>';
+
+      const websiteCell = document.createElement("div");
+      websiteCell.className = "grid-cell";
+      websiteCell.textContent = websiteText;
+
+      const appCell = document.createElement("div");
+      appCell.className = "grid-cell";
+      appCell.textContent = appText;
+
+      logGrid.appendChild(typeCell);
+      logGrid.appendChild(websiteCell);
+      logGrid.appendChild(appCell);
     }
 
     function updateStatus(text, isWarning = false) {
@@ -123,6 +262,7 @@
     function askAI(prompt) {
       if (!prompt || !prompt.trim()) {
         outputEl.textContent = "Please enter a question first.";
+        addLog("system", "Empty question blocked", "Request ignored");
         return;
       }
 
@@ -131,14 +271,18 @@
       try {
         if (appReady()) {
           updateStatus("Connected to app AI bridge");
+          addLog("website", "Question sent to app", "Bridge ready");
           const result = window.Qwen.ask(prompt.trim());
           outputEl.textContent = result;
+          addLog("app", "Received result", "Model generated answer");
         } else {
           updateStatus("Open this page inside the Android app WebView", true);
           outputEl.textContent = "This page must be opened inside the Android app. The AI bridge is not available in a normal browser.";
+          addLog("system", "Browser mode detected", "Bridge missing");
         }
       } catch (e) {
         outputEl.textContent = "Error: " + (e && e.message ? e.message : String(e));
+        addLog("system", "JavaScript error", "Bridge failed");
       } finally {
         setLoading(false);
       }
@@ -152,6 +296,7 @@
       questionEl.value = "";
       outputEl.textContent = "Answer will appear here...";
       updateStatus("Ready");
+      addLog("website", "User cleared input", "No action needed");
     });
 
     questionEl.addEventListener("keydown", function (e) {
@@ -162,8 +307,10 @@
 
     if (appReady()) {
       updateStatus("App bridge ready");
+      addLog("system", "Bridge detected", "Native AI available");
     } else {
       updateStatus("Open this page inside the Android app WebView", true);
+      addLog("system", "WebView not connected", "Bridge not found");
     }
   </script>
 </body>
