@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Offline AI</title>
+  <title>YAN1 Offline AI</title>
   <style>
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      font-family: Arial, sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background: #0f172a;
       color: #e5e7eb;
       display: flex;
@@ -21,163 +21,114 @@
       background: #111827;
       border: 1px solid #374151;
       border-radius: 16px;
-      padding: 20px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     }
-    h2 {
-      margin: 0 0 16px;
-      font-size: 24px;
-      color: #f9fafb;
-    }
+    h2 { margin: 0 0 8px; font-size: 28px; color: #f9fafb; }
     .status {
       font-size: 14px;
-      margin-bottom: 12px;
+      margin-bottom: 20px;
       color: #93c5fd;
-      min-height: 20px;
+      background: rgba(37, 99, 235, 0.1);
+      padding: 8px 12px;
+      border-radius: 8px;
+      display: inline-block;
     }
     .main-grid {
       display: grid;
       grid-template-columns: 1.2fr 0.8fr;
-      gap: 20px;
-      align-items: start;
+      gap: 24px;
     }
     .left-panel, .right-panel {
-      background: #0b1220;
-      border: 1px solid #374151;
+      background: #1e293b;
+      border: 1px solid #334155;
       border-radius: 12px;
-      padding: 16px;
+      padding: 20px;
     }
     textarea {
       width: 100%;
-      min-height: 150px;
-      border-radius: 12px;
-      border: 1px solid #4b5563;
-      background: #0b1220;
+      min-height: 120px;
+      border-radius: 8px;
+      border: 1px solid #475569;
+      background: #0f172a;
       color: white;
       padding: 14px;
       font-size: 16px;
-      resize: vertical;
+      margin-bottom: 12px;
+      outline: none;
     }
-    .row {
-      display: flex;
-      gap: 12px;
-      margin-top: 12px;
-      flex-wrap: wrap;
-    }
+    textarea:focus { border-color: #3b82f6; }
+    .row { display: flex; gap: 12px; }
     button {
       background: #2563eb;
       color: white;
       border: none;
-      padding: 12px 18px;
-      border-radius: 10px;
+      padding: 12px 24px;
+      border-radius: 8px;
       font-size: 16px;
       cursor: pointer;
       font-weight: 600;
+      transition: background 0.2s;
     }
-    button.secondary {
-      background: #374151;
-    }
+    button:hover { background: #1d4ed8; }
+    button.secondary { background: #475569; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    
     .output {
       margin-top: 20px;
-      background: #0b1220;
-      border: 1px solid #374151;
-      border-radius: 12px;
-      min-height: 180px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      min-height: 200px;
       padding: 16px;
       white-space: pre-wrap;
       line-height: 1.6;
-      color: #e5e7eb;
+      color: #cbd5e1;
     }
-    .loading {
-      color: #fbbf24;
-    }
-    .log-box {
-      margin-top: 24px;
-      background: #0b1220;
-      border: 1px solid #374151;
-      border-radius: 12px;
-      padding: 16px;
-    }
-    .log-box h3 {
-      margin: 0 0 12px;
-      color: #f9fafb;
-      font-size: 18px;
-    }
+    .loading { color: #fbbf24; font-style: italic; }
+
+    .log-box h3 { margin: 0 0 12px; font-size: 18px; }
     .grid {
       display: grid;
       grid-template-columns: 80px 1fr 1fr;
-      gap: 8px;
-      border: 1px solid #374151;
+      gap: 2px;
+      background: #334155;
+      border: 1px solid #334155;
       border-radius: 8px;
       overflow: hidden;
-      background: #111827;
     }
-    .grid-header {
-      background: #1f2937;
-      color: #f9fafb;
-      font-weight: 700;
-      padding: 10px 12px;
-    }
-    .grid-cell {
-      padding: 10px 12px;
-      border-top: 1px solid #374151;
-      background: #0b1220;
-      color: #d1d5db;
-      word-break: break-word;
-    }
-    .tag {
-      display: inline-block;
-      padding: 4px 8px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 700;
-      color: white;
-    }
-    .website-tag { background: #2563eb; }
-    .app-tag { background: #10b981; }
-    .system-tag { background: #f59e0b; }
-    @media (max-width: 900px) {
-      .main-grid { grid-template-columns: 1fr; }
-    }
+    .grid-header { background: #0f172a; padding: 10px; font-weight: bold; font-size: 13px; }
+    .grid-cell { background: #1e293b; padding: 10px; font-size: 13px; word-break: break-word; }
+    .tag { padding: 2px 6px; border-radius: 4px; font-size: 11px; text-transform: uppercase; font-weight: bold; }
+    .tag-sys { background: #d97706; }
+    .tag-web { background: #2563eb; }
+    .tag-app { background: #059669; }
+
+    @media (max-width: 900px) { .main-grid { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
   <div class="container">
-    <h2>Offline AI</h2>
-
-    <div class="status" id="status">Checking app connection...</div>
+    <h2>YAN1 Offline AI</h2>
+    <div class="status" id="status">Connecting to Bridge...</div>
 
     <div class="main-grid">
       <div class="left-panel">
-        <textarea id="question" placeholder="Type your question here...">What is artificial intelligence in simple words?</textarea>
-
+        <textarea id="question" placeholder="Ask anything...">What are the benefits of local AI?</textarea>
         <div class="row">
-          <button id="sendBtn">Send</button>
+          <button id="sendBtn">Send Message</button>
           <button id="clearBtn" class="secondary">Clear</button>
         </div>
-
-        <div class="output" id="output">Answer will appear here...</div>
+        <div class="output" id="output">AI output will appear here...</div>
       </div>
 
       <div class="right-panel">
         <div class="log-box">
           <h3>Activity Log</h3>
           <div class="grid" id="logGrid">
-            <div class="grid-header">Type</div>
-            <div class="grid-header">Website</div>
-            <div class="grid-header">App</div>
-
-            <div class="grid-cell"><span class="tag system-tag">System</span></div>
-            <div class="grid-cell">Page loaded</div>
-            <div class="grid-cell">WebView opened</div>
-
-            <div class="grid-cell"><span class="tag website-tag">Website</span></div>
-            <div class="grid-cell">Waiting for user input</div>
-            <div class="grid-cell">Ready for AI call</div>
-
-            <div class="grid-cell"><span class="tag app-tag">App</span></div>
-            <div class="grid-cell">Bridge available</div>
-            <div class="grid-cell">Native model ready</div>
+            <div class="grid-header">Source</div>
+            <div class="grid-header">Action</div>
+            <div class="grid-header">Status</div>
           </div>
         </div>
       </div>
@@ -189,175 +140,90 @@
     const outputEl = document.getElementById("output");
     const questionEl = document.getElementById("question");
     const logGrid = document.getElementById("logGrid");
+    const sendBtn = document.getElementById("sendBtn");
 
-    function addLog(type, websiteText, appText) {
-      const typeCell = document.createElement("div");
-      typeCell.className = "grid-cell";
-      typeCell.innerHTML =
-        '<span class="tag ' +
-        (type === "website" ? "website-tag" :
-         type === "app" ? "app-tag" : "system-tag") +
-        '">' + type.charAt(0).toUpperCase() + type.slice(1) + '</span>';
+    // Pre-load handler for the app's initialization ping
+    window.__qwen_preload_callback = function(res) {
+        addLog("app", "App Pre-load", "Model Ready in Background");
+        updateStatus("AI Model Ready (Pre-loaded)");
+    };
 
-      const websiteCell = document.createElement("div");
-      websiteCell.className = "grid-cell";
-      websiteCell.textContent = websiteText;
-
-      const appCell = document.createElement("div");
-      appCell.className = "grid-cell";
-      appCell.textContent = appText;
-
-      logGrid.appendChild(typeCell);
-      logGrid.appendChild(websiteCell);
-      logGrid.appendChild(appCell);
+    function addLog(type, action, status) {
+      const row = `
+        <div class="grid-cell"><span class="tag tag-${type.slice(0,3)}">${type}</span></div>
+        <div class="grid-cell">${action}</div>
+        <div class="grid-cell">${status}</div>
+      `;
+      logGrid.insertAdjacentHTML('beforeend', row);
     }
 
-    function updateStatus(text, isWarning = false) {
+    function updateStatus(text, isError = false) {
       statusEl.textContent = text;
-      statusEl.style.color = isWarning ? "#fbbf24" : "#93c5fd";
-    }
-
-    function setLoading(value) {
-      if (value) {
-        outputEl.classList.add("loading");
-        outputEl.textContent = "Thinking...";
-      } else {
-        outputEl.classList.remove("loading");
-      }
-    }
-
-    function qwenReady() {
-      return !!(window.Qwen && (
-        typeof window.Qwen.ping === "function" ||
-        typeof window.Qwen.askAsync === "function" ||
-        typeof window.Qwen.ask === "function"
-      ));
-    }
-
-    function androidReady() {
-      return !!(window.Android && typeof window.Android.runPython === "function");
+      statusEl.style.color = isError ? "#f87171" : "#93c5fd";
     }
 
     function checkBridge() {
-      if (qwenReady()) {
-        return "Qwen";
-      }
-      if (androidReady()) {
-        return "Android";
-      }
+      if (window.Qwen) return "Qwen";
+      if (window.Android) return "Python";
       return null;
     }
 
-    function callApp(prompt) {
-      return new Promise((resolve, reject) => {
-        try {
-          const bridge = checkBridge();
+    async function askAI() {
+      const prompt = questionEl.value.trim();
+      if (!prompt) return;
 
-          if (bridge === "Qwen") {
-            if (typeof window.Qwen.ping === "function") {
-              const pingResult = String(window.Qwen.ping());
-              if (pingResult && pingResult.toLowerCase().includes("ok")) {
-                // bridge alive
-              }
-            }
-
-            if (typeof window.Qwen.askAsync === "function") {
-              const callbackName = "__yan1_ai_cb_" + Date.now();
-
-              window[callbackName] = function (result) {
-                delete window[callbackName];
-                resolve(String(result));
-              };
-
-              window.Qwen.askAsync(prompt, callbackName);
-              return;
-            }
-
-            if (typeof window.Qwen.ask === "function") {
-              resolve(String(window.Qwen.ask(prompt)));
-              return;
-            }
-          }
-
-          if (bridge === "Android") {
-            resolve(String(window.Android.runPython(prompt)));
-            return;
-          }
-
-          reject(new Error("No app bridge available."));
-        } catch (e) {
-          reject(e);
-        }
-      });
-    }
-
-    async function askAI(prompt) {
-      const text = (prompt || "").trim();
-      if (!text) {
-        outputEl.textContent = "Please enter a question first.";
-        addLog("system", "Empty question blocked", "Request ignored");
+      const bridge = checkBridge();
+      if (!bridge) {
+        updateStatus("Error: Run this inside the YAN1 App", true);
         return;
       }
 
-      setLoading(true);
+      sendBtn.disabled = true;
+      outputEl.innerHTML = '<span class="loading">Generating response (this may take a few seconds)...</span>';
+      addLog("web", "Request Sent", "Waiting for AI...");
 
       try {
-        const bridge = checkBridge();
-
         if (bridge === "Qwen") {
-          updateStatus("Connected to app AI bridge");
-          addLog("website", "Question sent to app", "Qwen bridge ready");
-        } else if (bridge === "Android") {
-          updateStatus("Connected to Android bridge");
-          addLog("website", "Question sent to app", "Android bridge ready");
+          // Unique callback for this request
+          const cbName = "cb_" + Date.now();
+          window[cbName] = function(answer) {
+            outputEl.textContent = answer;
+            addLog("app", "Response Received", "Success");
+            sendBtn.disabled = false;
+            delete window[cbName];
+          };
+          window.Qwen.askAsync(prompt, cbName);
         } else {
-          updateStatus("Open this page inside the Android app WebView", true);
-          outputEl.textContent = "This page must be opened inside the Android app. The AI bridge is not available in a normal browser.";
-          addLog("system", "Browser mode detected", "Bridge missing");
-          return;
+          // Fallback to Python bridge if Qwen isn't loaded
+          const result = window.Android.runPython(prompt);
+          outputEl.textContent = result;
+          sendBtn.disabled = false;
         }
-
-        const result = await callApp(text);
-        outputEl.textContent = result;
-        addLog("app", "AI result received", "Model completed");
-        updateStatus("AI response received");
       } catch (e) {
-        outputEl.textContent = "Error: " + (e && e.message ? e.message : String(e));
-        addLog("system", "JavaScript error", "Bridge failed");
-        updateStatus("Bridge failed", true);
-      } finally {
-        setLoading(false);
+        outputEl.textContent = "Bridge Error: " + e.message;
+        sendBtn.disabled = false;
+        addLog("sys", "Bridge Failed", e.message);
       }
     }
 
-    document.getElementById("sendBtn").addEventListener("click", function () {
-      askAI(questionEl.value);
-    });
-
-    document.getElementById("clearBtn").addEventListener("click", function () {
-      questionEl.value = "";
-      outputEl.textContent = "Answer will appear here...";
-      updateStatus("Ready");
-      addLog("website", "User cleared input", "No action needed");
-    });
-
-    questionEl.addEventListener("keydown", function (e) {
-      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-        askAI(questionEl.value);
-      }
-    });
-
-    const bridge = checkBridge();
-    if (bridge === "Qwen") {
-      updateStatus("App bridge ready");
-      addLog("system", "Bridge detected", "Qwen available");
-    } else if (bridge === "Android") {
-      updateStatus("App bridge ready");
-      addLog("system", "Bridge detected", "Android available");
+    // Initialize UI
+    const bridgeType = checkBridge();
+    if (bridgeType === "Qwen") {
+        const info = window.Qwen.getStatus ? window.Qwen.getStatus() : "Connected";
+        updateStatus("Connected: " + info);
+        addLog("sys", "Bridge Link", "Qwen Native OK");
+    } else if (bridgeType === "Python") {
+        updateStatus("Connected: Python Bridge");
+        addLog("sys", "Bridge Link", "Android Bridge OK");
     } else {
-      updateStatus("Open this page inside the Android app WebView", true);
-      addLog("system", "WebView not connected", "Bridge not found");
+        updateStatus("Not Connected (Open in App)", true);
     }
+
+    sendBtn.addEventListener("click", askAI);
+    document.getElementById("clearBtn").addEventListener("click", () => {
+      questionEl.value = "";
+      outputEl.textContent = "AI output will appear here...";
+    });
   </script>
 </body>
 </html>
