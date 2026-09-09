@@ -5,12 +5,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-
+```
 <title>YAN1 AI</title>
 
 <style>
     body {
         margin: 0;
+        padding: 0;
         font-family: Arial, sans-serif;
         background: #f5f5f5;
 
@@ -26,27 +27,22 @@
     }
 
     h1 {
-        margin-bottom: 25px;
+        font-size: 28px;
+        margin-bottom: 10px;
     }
 
-    .open-ai {
-        padding: 14px 30px;
-        font-size: 18px;
-        font-weight: bold;
-
-        border: none;
-        border-radius: 8px;
-
-        background: #000;
-        color: white;
-
-        cursor: pointer;
-    }
-
-    .open-ai:hover {
-        background: #333;
+    p {
+        color: #555;
+        font-size: 16px;
     }
 </style>
+
+<script>
+    window.onload = function () {
+        window.location.href =
+            "https://chat.ragmyai.com/1aceee93-192a-4d2f-8741-71af6a7f9437";
+    };
+</script>
 ```
 
 </head>
@@ -55,23 +51,10 @@
 
 ```
 <div class="container">
-
-    <h1>Welcome</h1>
-
-    <button class="open-ai" onclick="openAI()">
-        Open AI
-    </button>
-
+    <h1>YAN1 AI</h1>
+    <p>Opening AI...</p>
 </div>
-
-<script>
-    function openAI() {
-        window.open(
-            "https://chat.ragmyai.com/1aceee93-192a-4d2f-8741-71af6a7f9437",
-            "_blank"
-        );
-    }
-</script>
+```
 
 </body>
 </html>
