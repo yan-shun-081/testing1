@@ -1,9 +1,12 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <title>Python Runner</title>
+
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -12,88 +15,350 @@
       margin: 0;
       padding: 24px;
     }
+
     .container {
       max-width: 900px;
       margin: 0 auto;
     }
-    textarea {
-      width: 100%;
-      min-height: 300px;
-      padding: 16px;
-      border-radius: 12px;
-      border: 1px solid #334155;
-      background: #111827;
-      color: #e2e8f0;
-      font-size: 16px;
-      resize: vertical;
+
+    h1 {
+      margin-bottom: 25px;
     }
-    button {
-      margin-top: 16px;
-      padding: 12px 24px;
-      border: none;
-      border-radius: 8px;
-      background: #2563eb;
-      color: white;
-      font-size: 16px;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #1d4ed8;
-    }
-    .output-box {
-      margin-top: 20px;
-      background: #111827;
-      border: 1px solid #334155;
-      border-radius: 12px;
-      padding: 16px;
-      white-space: pre-wrap;
-      min-height: 120px;
-      color: #d1fae5;
-    }
+
     .label {
       display: block;
       margin-bottom: 10px;
       font-weight: bold;
     }
+
+    textarea {
+      width: 100%;
+      min-height: 300px;
+      padding: 16px;
+      box-sizing: border-box;
+
+      border-radius: 12px;
+      border: 1px solid #334155;
+
+      background: #111827;
+      color: #e2e8f0;
+
+      font-family: Consolas, monospace;
+      font-size: 16px;
+
+      resize: vertical;
+      outline: none;
+    }
+
+    textarea:focus {
+      border-color: #2563eb;
+    }
+
+    button {
+      margin-top: 16px;
+      padding: 12px 24px;
+
+      border: none;
+      border-radius: 8px;
+
+      background: #2563eb;
+      color: white;
+
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #1d4ed8;
+    }
+
+    button:disabled {
+      background: #475569;
+      cursor: not-allowed;
+    }
+
+    .status {
+      margin-top: 15px;
+      color: #94a3b8;
+    }
+
+    .output-title {
+      margin-top: 25px;
+    }
+
+    .output-box {
+      margin-top: 10px;
+
+      background: #111827;
+      border: 1px solid #334155;
+      border-radius: 12px;
+
+      padding: 16px;
+
+      white-space: pre-wrap;
+      word-break: break-word;
+
+      min-height: 120px;
+
+      color: #d1fae5;
+
+      font-family: Consolas, monospace;
+      font-size: 15px;
+    }
   </style>
+
 </head>
+
 <body>
+
   <div class="container">
-    <h1>Python Runner</h1>
 
-    <label class="label" for="code">Paste Python code</label>
-    <textarea id="code">print("Hello from Python!")
+```
+<h1>Python Runner</h1>
+
+<label class="label" for="code">
+  Paste Python code
+</label>
+
+<textarea id="code">print("Hello from Python!")
+```
+
 x = 2 + 3
-print("Result:", x)
-</textarea>
 
-    <button id="runBtn">Send to App</button>
+print("Result:", x) </textarea>
 
-    <h3>Output</h3>
-    <div id="output" class="output-box">Waiting for result...</div>
+```
+<button id="runBtn">
+  Send to App
+</button>
+
+<div id="status" class="status">
+  Ready
+</div>
+
+<h3 class="output-title">
+  Output
+</h3>
+
+<div id="output" class="output-box">
+```
+
+Waiting for result... </div>
+
   </div>
 
   <script>
+
     const runBtn = document.getElementById("runBtn");
     const codeInput = document.getElementById("code");
     const outputBox = document.getElementById("output");
+    const statusBox = document.getElementById("status");
 
-    runBtn.addEventListener("click", function () {
-      const code = codeInput.value;
 
-      if (!code.trim()) {
-        outputBox.textContent = "Please enter Python code.";
+    // Store the currently running request ID
+    let currentRequestId = null;
+
+
+    // --------------------------------------------------
+    // SEND PYTHON CODE TO ANDROID APP
+    // --------------------------------------------------
+
+    function runCode() {
+
+      const pythonCode = codeInput.value;
+
+      // Check if code is empty
+      if (!pythonCode.trim()) {
+
+        outputBox.textContent =
+          "Please enter Python code.";
+
+        statusBox.textContent =
+          "No Python code entered.";
+
         return;
       }
 
-      try {
-        outputBox.textContent = "Running...";
-        const result = window.Android.runPython(code);
-        outputBox.textContent = result || "No output";
-      } catch (error) {
-        outputBox.textContent = "Error: " + error.message;
+
+      // Check whether Android Python bridge exists
+      if (
+        !window.AndroidPython ||
+        typeof window.AndroidPython.runPython !== "function"
+      ) {
+
+        outputBox.textContent =
+          "Android Python bridge not found.";
+
+        statusBox.textContent =
+          "This page is not connected to the Android app.";
+
+        console.error(
+          "AndroidPython.runPython() was not found."
+        );
+
+        return;
       }
-    });
+
+
+      // Create a unique request ID
+      const requestId =
+        "request_" + Date.now() + "_" +
+        Math.random().toString(36).substring(2, 8);
+
+
+      // Remember the current request
+      currentRequestId = requestId;
+
+
+      // Update UI
+      outputBox.textContent =
+        "Running Python...";
+
+      statusBox.textContent =
+        "Sending code to Android app...";
+
+      runBtn.disabled = true;
+
+
+      try {
+
+        // Send Python code + request ID to Android
+        window.AndroidPython.runPython(
+          pythonCode,
+          requestId
+        );
+
+        statusBox.textContent =
+          "Python code sent. Waiting for result...";
+
+      } catch (error) {
+
+        outputBox.textContent =
+          "Error sending Python code:\n\n" +
+          error.message;
+
+        statusBox.textContent =
+          "Failed to send code.";
+
+        runBtn.disabled = false;
+
+      }
+    }
+
+
+    // --------------------------------------------------
+    // ANDROID CALLS THIS FUNCTION WHEN PYTHON FINISHES
+    // --------------------------------------------------
+
+    function receivePythonOutput(output, requestId) {
+
+      console.log(
+        "Python output received:",
+        output
+      );
+
+      console.log(
+        "Request ID:",
+        requestId
+      );
+
+
+      // Ignore old/unexpected responses
+      if (
+        currentRequestId !== null &&
+        requestId !== currentRequestId
+      ) {
+
+        console.warn(
+          "Received response for another request:",
+          requestId
+        );
+
+        return;
+      }
+
+
+      // Display Python result
+      if (
+        output === null ||
+        output === undefined ||
+        output === ""
+      ) {
+
+        outputBox.textContent =
+          "Python finished with no output.";
+
+      } else {
+
+        outputBox.textContent =
+          String(output);
+
+      }
+
+
+      // Update status
+      statusBox.textContent =
+        "Python execution completed.";
+
+
+      // Enable button again
+      runBtn.disabled = false;
+
+
+      // Clear current request
+      currentRequestId = null;
+    }
+
+
+    // --------------------------------------------------
+    // OPTIONAL: ANDROID CAN CALL THIS FOR ERRORS
+    // --------------------------------------------------
+
+    function receivePythonError(error, requestId) {
+
+      console.error(
+        "Python error:",
+        error
+      );
+
+
+      outputBox.textContent =
+        "Python Error:\n\n" +
+        String(error);
+
+
+      statusBox.textContent =
+        "Python execution failed.";
+
+
+      runBtn.disabled = false;
+
+
+      currentRequestId = null;
+    }
+
+
+    // --------------------------------------------------
+    // BUTTON CLICK
+    // --------------------------------------------------
+
+    runBtn.addEventListener(
+      "click",
+      runCode
+    );
+
+
+    // --------------------------------------------------
+    // MAKE FUNCTIONS AVAILABLE TO ANDROID
+    // --------------------------------------------------
+
+    window.receivePythonOutput =
+      receivePythonOutput;
+
+    window.receivePythonError =
+      receivePythonError;
+
   </script>
+
 </body>
 </html>
