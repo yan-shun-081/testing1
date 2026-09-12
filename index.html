@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -82,6 +82,18 @@
       color: #94a3b8;
     }
 
+    .bridge-status {
+      margin-top: 10px;
+      padding: 10px;
+
+      border-radius: 8px;
+
+      background: #1e293b;
+      color: #94a3b8;
+
+      font-size: 14px;
+    }
+
     .output-title {
       margin-top: 25px;
     }
@@ -90,7 +102,9 @@
       margin-top: 10px;
 
       background: #111827;
+
       border: 1px solid #334155;
+
       border-radius: 12px;
 
       padding: 16px;
@@ -109,65 +123,452 @@
 
 </head>
 
+
 <body>
 
   <div class="container">
 
-```
-<h1>Python Runner</h1>
+    <h1>Python Runner</h1>
 
-<label class="label" for="code">
-  Paste Python code
-</label>
 
-<textarea id="code">print("Hello from Python!")
-```
+    <label class="label" for="code">
+      Paste Python code
+    </label>
+
+
+    <textarea id="code">print("Hello from Python!")
 
 x = 2 + 3
 
-print("Result:", x) </textarea>
+print("Result:", x)
 
-```
-<button id="runBtn">
-  Send to App
-</button>
+__result__ = x</textarea>
 
-<div id="status" class="status">
-  Ready
-</div>
 
-<h3 class="output-title">
-  Output
-</h3>
+    <button id="runBtn">
+      Send to App
+    </button>
 
-<div id="output" class="output-box">
-```
 
-Waiting for result... </div>
+    <div id="status" class="status">
+      Ready
+    </div>
+
+
+    <div id="bridgeStatus" class="bridge-status">
+      Checking Android Python bridge...
+    </div>
+
+
+    <h3 class="output-title">
+      Output
+    </h3>
+
+
+    <div id="output" class="output-box">
+Waiting for result...
+    </div>
 
   </div>
 
+
   <script>
 
-    const runBtn = document.getElementById("runBtn");
-    const codeInput = document.getElementById("code");
-    const outputBox = document.getElementById("output");
-    const statusBox = document.getElementById("status");
+    // ==================================================
+    // ELEMENTS
+    // ==================================================
+
+    const runBtn =
+      document.getElementById("runBtn");
+
+    const codeInput =
+      document.getElementById("code");
+
+    const outputBox =
+      document.getElementById("output");
+
+    const statusBox =
+      document.getElementById("status");
+
+    const bridgeStatus =
+      document.getElementById("bridgeStatus");
 
 
-    // Store the currently running request ID
-    let currentRequestId = null;
+    // ==================================================
+    // CHECK PYTHON BRIDGE
+    //
+    // Supports BOTH:
+    //
+    // 1. AndroidPythonBridge.execute()
+    //
+    // 2. AndroidPython.execute()
+    // ==================================================
+
+    function isPythonBridgeAvailable() {
+
+      return (
+
+        (
+          window.AndroidPythonBridge &&
+          typeof window.AndroidPythonBridge.execute === "function"
+        )
+
+        ||
+
+        (
+          window.AndroidPython &&
+          typeof window.AndroidPython.execute === "function"
+        )
+
+      );
+
+    }
 
 
-    // --------------------------------------------------
-    // SEND PYTHON CODE TO ANDROID APP
-    // --------------------------------------------------
+    // ==================================================
+    // FIND WHICH BRIDGE IS AVAILABLE
+    // ==================================================
 
-    function runCode() {
+    function getPythonBridge() {
 
-      const pythonCode = codeInput.value;
+      // Preferred bridge
 
-      // Check if code is empty
+      if (
+        window.AndroidPythonBridge &&
+        typeof window.AndroidPythonBridge.execute === "function"
+      ) {
+
+        return {
+          type: "proxy",
+          bridge: window.AndroidPythonBridge
+        };
+
+      }
+
+
+      // Fallback raw interface
+
+      if (
+        window.AndroidPython &&
+        typeof window.AndroidPython.execute === "function"
+      ) {
+
+        return {
+          type: "raw",
+          bridge: window.AndroidPython
+        };
+
+      }
+
+
+      return null;
+
+    }
+
+
+    // ==================================================
+    // UPDATE BRIDGE STATUS
+    // ==================================================
+
+    function updateBridgeStatus() {
+
+      const bridge =
+        getPythonBridge();
+
+
+      if (!bridge) {
+
+        bridgeStatus.textContent =
+          "Android Python bridge not found. Open this page inside your Android app.";
+
+        return;
+
+      }
+
+
+      if (bridge.type === "proxy") {
+
+        bridgeStatus.textContent =
+          "Android Python bridge connected (proxy interface).";
+
+      }
+
+      else if (bridge.type === "raw") {
+
+        bridgeStatus.textContent =
+          "Android Python bridge connected (raw interface).";
+
+      }
+
+    }
+
+
+    // ==================================================
+    // EXECUTE PYTHON
+    //
+    // IMPORTANT:
+    //
+    // This function supports:
+    //
+    // AndroidPythonBridge.execute(code)
+    //
+    // AND
+    //
+    // AndroidPython.execute(code)
+    //
+    // ==================================================
+
+    function execPython(
+      code,
+      { timeoutMs = 8000 } = {}
+    ) {
+
+      return new Promise((resolve) => {
+
+        let done = false;
+
+
+        // ----------------------------------------------
+        // FINISH ONLY ONCE
+        // ----------------------------------------------
+
+        const finish = (result) => {
+
+          if (done) {
+            return;
+          }
+
+          done = true;
+
+          resolve(result);
+
+        };
+
+
+        // ----------------------------------------------
+        // FIND AVAILABLE BRIDGE
+        // ----------------------------------------------
+
+        const bridgeInfo =
+          getPythonBridge();
+
+
+        if (!bridgeInfo) {
+
+          finish({
+
+            ok: false,
+
+            output: "",
+
+            value: null,
+
+            error: "no-bridge",
+
+            traceback: ""
+
+          });
+
+          return;
+
+        }
+
+
+        // ----------------------------------------------
+        // CALL ANDROID
+        // ----------------------------------------------
+
+        try {
+
+          let raw;
+
+
+          // ============================================
+          // PREFERRED:
+          // AndroidPythonBridge.execute(code)
+          // ============================================
+
+          if (bridgeInfo.type === "proxy") {
+
+            raw =
+              bridgeInfo.bridge.execute(
+                String(code)
+              );
+
+          }
+
+
+          // ============================================
+          // FALLBACK:
+          // AndroidPython.execute(code)
+          //
+          // This normally returns JSON STRING
+          // ============================================
+
+          else {
+
+            raw =
+              bridgeInfo.bridge.execute(
+                String(code)
+              );
+
+          }
+
+
+          // ----------------------------------------------
+          // PROCESS RETURN VALUE
+          // ----------------------------------------------
+
+          let result = raw;
+
+
+          // AndroidPython.execute()
+          // may return a JSON string.
+
+          if (typeof raw === "string") {
+
+            try {
+
+              result =
+                JSON.parse(raw);
+
+            }
+
+            catch (jsonError) {
+
+              // If the returned string is not JSON,
+              // treat it as normal Python output.
+
+              result = {
+
+                ok: true,
+
+                output: raw,
+
+                value: null,
+
+                error: "",
+
+                traceback: ""
+
+              };
+
+            }
+
+          }
+
+
+          // ----------------------------------------------
+          // EMPTY RESPONSE
+          // ----------------------------------------------
+
+          if (
+            result === null ||
+            result === undefined
+          ) {
+
+            result = {
+
+              ok: false,
+
+              output: "",
+
+              value: null,
+
+              error: "empty-response",
+
+              traceback: ""
+
+            };
+
+          }
+
+
+          // ----------------------------------------------
+          // RETURN RESULT
+          // ----------------------------------------------
+
+          finish(result);
+
+        }
+
+
+        catch (error) {
+
+          finish({
+
+            ok: false,
+
+            output: "",
+
+            value: null,
+
+            error: String(error),
+
+            traceback: ""
+
+          });
+
+        }
+
+
+        // =================================================
+        // TIMEOUT
+        //
+        // IMPORTANT:
+        //
+        // This timeout cannot cancel a synchronous
+        // Android addJavascriptInterface() call.
+        //
+        // If execute() is currently blocking the WebView,
+        // JavaScript itself cannot continue until that
+        // native call returns.
+        //
+        // For long-running Python code, use an async
+        // Android bridge such as executeAsync().
+        // =================================================
+
+        setTimeout(() => {
+
+          finish({
+
+            ok: false,
+
+            output: "",
+
+            value: null,
+
+            error: "timeout",
+
+            traceback:
+              "Python execution exceeded " +
+              timeoutMs +
+              " ms. " +
+              "This timeout does not cancel a blocking native call."
+
+          });
+
+        }, timeoutMs);
+
+      });
+
+    }
+
+
+    // ==================================================
+    // RUN PYTHON CODE
+    // ==================================================
+
+    async function runCode() {
+
+      const pythonCode =
+        codeInput.value;
+
+
+      // ----------------------------------------------
+      // EMPTY CODE
+      // ----------------------------------------------
+
       if (!pythonCode.trim()) {
 
         outputBox.textContent =
@@ -177,170 +578,266 @@ Waiting for result... </div>
           "No Python code entered.";
 
         return;
+
       }
 
 
-      // Check whether Android Python bridge exists
-      if (
-        !window.AndroidPython ||
-        typeof window.AndroidPython.runPython !== "function"
-      ) {
+      // ----------------------------------------------
+      // CHECK BRIDGE
+      // ----------------------------------------------
+
+      if (!isPythonBridgeAvailable()) {
 
         outputBox.textContent =
-          "Android Python bridge not found.";
+          "Android Python bridge not found.\n\n" +
+
+          "The Android app must expose either:\n\n" +
+
+          "AndroidPythonBridge.execute(code)\n\n" +
+
+          "or:\n\n" +
+
+          "AndroidPython.execute(code)";
 
         statusBox.textContent =
-          "This page is not connected to the Android app.";
+          "Bridge not connected.";
 
-        console.error(
-          "AndroidPython.runPython() was not found."
-        );
+        updateBridgeStatus();
 
         return;
+
       }
 
 
-      // Create a unique request ID
-      const requestId =
-        "request_" + Date.now() + "_" +
-        Math.random().toString(36).substring(2, 8);
-
-
-      // Remember the current request
-      currentRequestId = requestId;
-
-
-      // Update UI
-      outputBox.textContent =
-        "Running Python...";
-
-      statusBox.textContent =
-        "Sending code to Android app...";
+      // ----------------------------------------------
+      // UPDATE UI
+      // ----------------------------------------------
 
       runBtn.disabled = true;
 
 
+      outputBox.textContent =
+        "Running Python...";
+
+
+      statusBox.textContent =
+        "Sending Python code to Android app...";
+
+
       try {
 
-        // Send Python code + request ID to Android
-        window.AndroidPython.runPython(
-          pythonCode,
-          requestId
+        // --------------------------------------------
+        // EXECUTE PYTHON
+        // --------------------------------------------
+
+        const result =
+          await execPython(
+
+            pythonCode,
+
+            {
+              timeoutMs: 8000
+            }
+
+          );
+
+
+        console.log(
+          "Python result:",
+          result
         );
 
-        statusBox.textContent =
-          "Python code sent. Waiting for result...";
 
-      } catch (error) {
+        // --------------------------------------------
+        // SUCCESS
+        // --------------------------------------------
 
-        outputBox.textContent =
-          "Error sending Python code:\n\n" +
-          error.message;
+        if (result.ok === true) {
 
-        statusBox.textContent =
-          "Failed to send code.";
+          let displayText = "";
 
-        runBtn.disabled = false;
+
+          // ==========================================
+          // PRINT OUTPUT
+          // ==========================================
+
+          if (
+
+            result.output !== null &&
+
+            result.output !== undefined &&
+
+            String(result.output) !== ""
+
+          ) {
+
+            displayText +=
+              String(result.output);
+
+          }
+
+
+          // ==========================================
+          // __result__
+          // ==========================================
+
+          if (
+
+            result.value !== null &&
+
+            result.value !== undefined
+
+          ) {
+
+            if (displayText !== "") {
+
+              displayText +=
+                "\n\n";
+
+            }
+
+
+            displayText +=
+              "Result: " +
+              formatPythonValue(result.value);
+
+          }
+
+
+          // ==========================================
+          // NOTHING RETURNED
+          // ==========================================
+
+          if (displayText === "") {
+
+            displayText =
+              "Python finished successfully with no output.";
+
+          }
+
+
+          outputBox.textContent =
+            displayText;
+
+
+          statusBox.textContent =
+            "Python execution completed.";
+
+        }
+
+
+        // --------------------------------------------
+        // ERROR
+        // --------------------------------------------
+
+        else {
+
+          let errorText =
+            "Python execution failed.";
+
+
+          if (result.error) {
+
+            errorText +=
+              "\n\nError:\n" +
+              String(result.error);
+
+          }
+
+
+          if (result.traceback) {
+
+            errorText +=
+              "\n\nTraceback:\n" +
+              String(result.traceback);
+
+          }
+
+
+          if (result.output) {
+
+            errorText +=
+              "\n\nOutput before error:\n" +
+              String(result.output);
+
+          }
+
+
+          outputBox.textContent =
+            errorText;
+
+
+          statusBox.textContent =
+            "Python execution failed.";
+
+        }
 
       }
-    }
 
 
-    // --------------------------------------------------
-    // ANDROID CALLS THIS FUNCTION WHEN PYTHON FINISHES
-    // --------------------------------------------------
+      catch (error) {
 
-    function receivePythonOutput(output, requestId) {
-
-      console.log(
-        "Python output received:",
-        output
-      );
-
-      console.log(
-        "Request ID:",
-        requestId
-      );
-
-
-      // Ignore old/unexpected responses
-      if (
-        currentRequestId !== null &&
-        requestId !== currentRequestId
-      ) {
-
-        console.warn(
-          "Received response for another request:",
-          requestId
+        console.error(
+          "Python execution error:",
+          error
         );
 
-        return;
-      }
-
-
-      // Display Python result
-      if (
-        output === null ||
-        output === undefined ||
-        output === ""
-      ) {
 
         outputBox.textContent =
-          "Python finished with no output.";
+          "JavaScript / Android Bridge Error:\n\n" +
+          String(error);
 
-      } else {
 
-        outputBox.textContent =
-          String(output);
+        statusBox.textContent =
+          "Failed to execute Python.";
 
       }
 
 
-      // Update status
-      statusBox.textContent =
-        "Python execution completed.";
-
-
-      // Enable button again
-      runBtn.disabled = false;
-
-
-      // Clear current request
-      currentRequestId = null;
-    }
-
-
-    // --------------------------------------------------
-    // OPTIONAL: ANDROID CAN CALL THIS FOR ERRORS
-    // --------------------------------------------------
-
-    function receivePythonError(error, requestId) {
-
-      console.error(
-        "Python error:",
-        error
-      );
-
-
-      outputBox.textContent =
-        "Python Error:\n\n" +
-        String(error);
-
-
-      statusBox.textContent =
-        "Python execution failed.";
-
+      // ----------------------------------------------
+      // ENABLE BUTTON
+      // ----------------------------------------------
 
       runBtn.disabled = false;
 
-
-      currentRequestId = null;
     }
 
 
-    // --------------------------------------------------
-    // BUTTON CLICK
-    // --------------------------------------------------
+    // ==================================================
+    // FORMAT RESULT
+    // ==================================================
+
+    function formatPythonValue(value) {
+
+      if (typeof value === "object") {
+
+        try {
+
+          return JSON.stringify(
+            value,
+            null,
+            2
+          );
+
+        }
+
+        catch (error) {
+
+          return String(value);
+
+        }
+
+      }
+
+
+      return String(value);
+
+    }
+
+
+    // ==================================================
+    // BUTTON
+    // ==================================================
 
     runBtn.addEventListener(
       "click",
@@ -348,17 +845,30 @@ Waiting for result... </div>
     );
 
 
-    // --------------------------------------------------
-    // MAKE FUNCTIONS AVAILABLE TO ANDROID
-    // --------------------------------------------------
+    // ==================================================
+    // INITIAL BRIDGE CHECK
+    // ==================================================
 
-    window.receivePythonOutput =
-      receivePythonOutput;
+    updateBridgeStatus();
 
-    window.receivePythonError =
-      receivePythonError;
+
+    // Android bridge may become available shortly
+    // after the WebView loads.
+
+    setTimeout(
+      updateBridgeStatus,
+      500
+    );
+
+
+    setTimeout(
+      updateBridgeStatus,
+      1500
+    );
+
 
   </script>
 
 </body>
+
 </html>
