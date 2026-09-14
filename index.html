@@ -2,872 +2,567 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>Python Runner</title>
+    <title>YAN1 Python Runner</title>
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #0f172a;
-      color: white;
-      margin: 0;
-      padding: 24px;
-    }
+    <style>
+        * {
+            box-sizing: border-box;
+        }
 
-    .container {
-      max-width: 900px;
-      margin: 0 auto;
-    }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            background: #0b0b12;
+            color: white;
+            padding: 20px;
+        }
 
-    h1 {
-      margin-bottom: 25px;
-    }
+        .container {
+            width: 100%;
+            max-width: 900px;
+            margin: auto;
+        }
 
-    .label {
-      display: block;
-      margin-bottom: 10px;
-      font-weight: bold;
-    }
+        h1 {
+            text-align: center;
+            margin-bottom: 8px;
+            letter-spacing: 2px;
+        }
 
-    textarea {
-      width: 100%;
-      min-height: 300px;
-      padding: 16px;
-      box-sizing: border-box;
+        .connection {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
 
-      border-radius: 12px;
-      border: 1px solid #334155;
+        .connected {
+            color: #39e58c;
+        }
 
-      background: #111827;
-      color: #e2e8f0;
+        .disconnected {
+            color: #ff5c5c;
+        }
 
-      font-family: Consolas, monospace;
-      font-size: 16px;
+        .box {
+            background: #15151f;
+            border: 1px solid #2c2c3a;
+            border-radius: 14px;
+            padding: 18px;
+            margin-bottom: 18px;
+        }
 
-      resize: vertical;
-      outline: none;
-    }
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
 
-    textarea:focus {
-      border-color: #2563eb;
-    }
+        textarea {
+            width: 100%;
+            min-height: 280px;
+            resize: vertical;
+            border: 1px solid #383849;
+            border-radius: 10px;
+            background: #090910;
+            color: #f5f5f5;
+            padding: 15px;
+            font-family: Consolas, monospace;
+            font-size: 15px;
+            line-height: 1.5;
+            outline: none;
+        }
 
-    button {
-      margin-top: 16px;
-      padding: 12px 24px;
+        textarea:focus {
+            border-color: #6c63ff;
+        }
 
-      border: none;
-      border-radius: 8px;
+        button {
+            width: 100%;
+            margin-top: 15px;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            background: #6c63ff;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
 
-      background: #2563eb;
-      color: white;
+        button:hover {
+            background: #574fff;
+        }
 
-      font-size: 16px;
-      cursor: pointer;
-    }
+        button:disabled {
+            background: #3a3948;
+            cursor: not-allowed;
+        }
 
-    button:hover {
-      background: #1d4ed8;
-    }
+        .output {
+            background: #090910;
+            border: 1px solid #383849;
+            border-radius: 10px;
+            padding: 15px;
+            min-height: 150px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-family: Consolas, monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            overflow-x: auto;
+        }
 
-    button:disabled {
-      background: #475569;
-      cursor: not-allowed;
-    }
+        .waiting {
+            color: #888;
+        }
 
-    .status {
-      margin-top: 15px;
-      color: #94a3b8;
-    }
+        .error {
+            color: #ff6b6b;
+        }
 
-    .bridge-status {
-      margin-top: 10px;
-      padding: 10px;
-
-      border-radius: 8px;
-
-      background: #1e293b;
-      color: #94a3b8;
-
-      font-size: 14px;
-    }
-
-    .output-title {
-      margin-top: 25px;
-    }
-
-    .output-box {
-      margin-top: 10px;
-
-      background: #111827;
-
-      border: 1px solid #334155;
-
-      border-radius: 12px;
-
-      padding: 16px;
-
-      white-space: pre-wrap;
-      word-break: break-word;
-
-      min-height: 120px;
-
-      color: #d1fae5;
-
-      font-family: Consolas, monospace;
-      font-size: 15px;
-    }
-  </style>
-
+        .success {
+            color: #65e6a1;
+        }
+    </style>
 </head>
-
 
 <body>
 
-  <div class="container">
+    <div class="container">
 
-    <h1>Python Runner</h1>
+        <h1>YAN1 Python Runner</h1>
 
+        <div id="connectionStatus" class="connection disconnected">
+            Connecting to YAN1 App...
+        </div>
 
-    <label class="label" for="code">
-      Paste Python code
-    </label>
+        <div class="box">
 
+            <label for="pythonCode">
+                Enter Python Code
+            </label>
 
-    <textarea id="code">print("Hello from Python!")
+            <textarea id="pythonCode" spellcheck="false"
+                placeholder="print('Hello from YAN1!')"></textarea>
 
-x = 2 + 3
+            <button id="sendButton" onclick="sendPythonCode()">
+                Send Python Code
+            </button>
 
-print("Result:", x)
+        </div>
 
-__result__ = x</textarea>
+        <div class="box">
 
+            <label>
+                Python Output
+            </label>
 
-    <button id="runBtn">
-      Send to App
-    </button>
+            <div id="output" class="output waiting">
+                Waiting for Python execution...
+            </div>
 
+        </div>
 
-    <div id="status" class="status">
-      Ready
     </div>
 
 
-    <div id="bridgeStatus" class="bridge-status">
-      Checking Android Python bridge...
-    </div>
+    <script>
 
+        /*
+         * ============================================================
+         * YAN1 PYTHON CONNECTION
+         * ============================================================
+         *
+         * The Android app must provide:
+         *
+         * window.AndroidPython.executePython(pythonCode, requestId)
+         *
+         * The Android app must call:
+         *
+         * window.onPythonResult(output, requestId)
+         *
+         * or:
+         *
+         * window.onPythonError(errorMessage, requestId)
+         *
+         */
 
-    <h3 class="output-title">
-      Output
-    </h3>
 
+        let appConnected = false;
 
-    <div id="output" class="output-box">
-Waiting for result...
-    </div>
 
-  </div>
+        /*
+         * ------------------------------------------------------------
+         * CHECK CONNECTION
+         * ------------------------------------------------------------
+         *
+         * The page automatically checks whether it is running
+         * inside the YAN1 Android app.
+         */
 
+        function checkYAN1Connection() {
 
-  <script>
+            const status = document.getElementById("connectionStatus");
 
-    // ==================================================
-    // ELEMENTS
-    // ==================================================
+            if (window.AndroidPython &&
+                typeof window.AndroidPython.executePython === "function") {
 
-    const runBtn =
-      document.getElementById("runBtn");
+                appConnected = true;
 
-    const codeInput =
-      document.getElementById("code");
+                status.textContent = "● Connected to YAN1 App";
+                status.className = "connection connected";
 
-    const outputBox =
-      document.getElementById("output");
+            } else {
 
-    const statusBox =
-      document.getElementById("status");
+                appConnected = false;
 
-    const bridgeStatus =
-      document.getElementById("bridgeStatus");
+                status.textContent =
+                    "● Not connected — Open this page inside YAN1 App";
 
-
-    // ==================================================
-    // CHECK PYTHON BRIDGE
-    //
-    // Supports BOTH:
-    //
-    // 1. AndroidPythonBridge.execute()
-    //
-    // 2. AndroidPython.execute()
-    // ==================================================
-
-    function isPythonBridgeAvailable() {
-
-      return (
-
-        (
-          window.AndroidPythonBridge &&
-          typeof window.AndroidPythonBridge.execute === "function"
-        )
-
-        ||
-
-        (
-          window.AndroidPython &&
-          typeof window.AndroidPython.execute === "function"
-        )
-
-      );
-
-    }
-
-
-    // ==================================================
-    // FIND WHICH BRIDGE IS AVAILABLE
-    // ==================================================
-
-    function getPythonBridge() {
-
-      // Preferred bridge
-
-      if (
-        window.AndroidPythonBridge &&
-        typeof window.AndroidPythonBridge.execute === "function"
-      ) {
-
-        return {
-          type: "proxy",
-          bridge: window.AndroidPythonBridge
-        };
-
-      }
-
-
-      // Fallback raw interface
-
-      if (
-        window.AndroidPython &&
-        typeof window.AndroidPython.execute === "function"
-      ) {
-
-        return {
-          type: "raw",
-          bridge: window.AndroidPython
-        };
-
-      }
-
-
-      return null;
-
-    }
-
-
-    // ==================================================
-    // UPDATE BRIDGE STATUS
-    // ==================================================
-
-    function updateBridgeStatus() {
-
-      const bridge =
-        getPythonBridge();
-
-
-      if (!bridge) {
-
-        bridgeStatus.textContent =
-          "Android Python bridge not found. Open this page inside your Android app.";
-
-        return;
-
-      }
-
-
-      if (bridge.type === "proxy") {
-
-        bridgeStatus.textContent =
-          "Android Python bridge connected (proxy interface).";
-
-      }
-
-      else if (bridge.type === "raw") {
-
-        bridgeStatus.textContent =
-          "Android Python bridge connected (raw interface).";
-
-      }
-
-    }
-
-
-    // ==================================================
-    // EXECUTE PYTHON
-    //
-    // IMPORTANT:
-    //
-    // This function supports:
-    //
-    // AndroidPythonBridge.execute(code)
-    //
-    // AND
-    //
-    // AndroidPython.execute(code)
-    //
-    // ==================================================
-
-    function execPython(
-      code,
-      { timeoutMs = 8000 } = {}
-    ) {
-
-      return new Promise((resolve) => {
-
-        let done = false;
-
-
-        // ----------------------------------------------
-        // FINISH ONLY ONCE
-        // ----------------------------------------------
-
-        const finish = (result) => {
-
-          if (done) {
-            return;
-          }
-
-          done = true;
-
-          resolve(result);
-
-        };
-
-
-        // ----------------------------------------------
-        // FIND AVAILABLE BRIDGE
-        // ----------------------------------------------
-
-        const bridgeInfo =
-          getPythonBridge();
-
-
-        if (!bridgeInfo) {
-
-          finish({
-
-            ok: false,
-
-            output: "",
-
-            value: null,
-
-            error: "no-bridge",
-
-            traceback: ""
-
-          });
-
-          return;
-
+                status.className = "connection disconnected";
+            }
         }
 
 
-        // ----------------------------------------------
-        // CALL ANDROID
-        // ----------------------------------------------
+        /*
+         * ------------------------------------------------------------
+         * RUN PYTHON ON DEVICE
+         * ------------------------------------------------------------
+         */
 
-        try {
+        function runPythonOnDevice(pythonCode, onSuccess, onError) {
 
-          let raw;
+            // Check Android bridge
 
+            if (!window.AndroidPython ||
+                typeof window.AndroidPython.executePython !== "function") {
 
-          // ============================================
-          // PREFERRED:
-          // AndroidPythonBridge.execute(code)
-          // ============================================
+                const fallbackMsg =
+                    "Execution failed: Not running inside the YAN1 APP environment.";
 
-          if (bridgeInfo.type === "proxy") {
+                console.error(fallbackMsg);
 
-            raw =
-              bridgeInfo.bridge.execute(
-                String(code)
-              );
+                if (onError) {
+                    onError(fallbackMsg);
+                }
 
-          }
-
-
-          // ============================================
-          // FALLBACK:
-          // AndroidPython.execute(code)
-          //
-          // This normally returns JSON STRING
-          // ============================================
-
-          else {
-
-            raw =
-              bridgeInfo.bridge.execute(
-                String(code)
-              );
-
-          }
+                return;
+            }
 
 
-          // ----------------------------------------------
-          // PROCESS RETURN VALUE
-          // ----------------------------------------------
+            /*
+             * Create unique ID for this execution.
+             */
 
-          let result = raw;
+            const requestId =
+                "py_req_" +
+                Date.now() +
+                "_" +
+                Math.floor(Math.random() * 1000);
 
 
-          // AndroidPython.execute()
-          // may return a JSON string.
+            /*
+             * Create temporary success callback.
+             */
 
-          if (typeof raw === "string") {
+            window[requestId + "_success"] = function (output) {
+
+                if (onSuccess) {
+                    onSuccess(output);
+                }
+
+                cleanupTrackers(requestId);
+            };
+
+
+            /*
+             * Create temporary error callback.
+             */
+
+            window[requestId + "_error"] = function (errorLog) {
+
+                if (onError) {
+                    onError(errorLog);
+                }
+
+                cleanupTrackers(requestId);
+            };
+
+
+            /*
+             * Send Python code to Android.
+             */
 
             try {
 
-              result =
-                JSON.parse(raw);
+                window.AndroidPython.executePython(
+                    pythonCode,
+                    requestId
+                );
 
+            } catch (error) {
+
+                window[requestId + "_error"](
+                    error.toString()
+                );
             }
-
-            catch (jsonError) {
-
-              // If the returned string is not JSON,
-              // treat it as normal Python output.
-
-              result = {
-
-                ok: true,
-
-                output: raw,
-
-                value: null,
-
-                error: "",
-
-                traceback: ""
-
-              };
-
-            }
-
-          }
-
-
-          // ----------------------------------------------
-          // EMPTY RESPONSE
-          // ----------------------------------------------
-
-          if (
-            result === null ||
-            result === undefined
-          ) {
-
-            result = {
-
-              ok: false,
-
-              output: "",
-
-              value: null,
-
-              error: "empty-response",
-
-              traceback: ""
-
-            };
-
-          }
-
-
-          // ----------------------------------------------
-          // RETURN RESULT
-          // ----------------------------------------------
-
-          finish(result);
-
         }
 
 
-        catch (error) {
+        /*
+         * ------------------------------------------------------------
+         * CLEAN TEMPORARY CALLBACKS
+         * ------------------------------------------------------------
+         */
 
-          finish({
+        function cleanupTrackers(id) {
 
-            ok: false,
-
-            output: "",
-
-            value: null,
-
-            error: String(error),
-
-            traceback: ""
-
-          });
-
+            delete window[id + "_success"];
+            delete window[id + "_error"];
         }
 
 
-        // =================================================
-        // TIMEOUT
-        //
-        // IMPORTANT:
-        //
-        // This timeout cannot cancel a synchronous
-        // Android addJavascriptInterface() call.
-        //
-        // If execute() is currently blocking the WebView,
-        // JavaScript itself cannot continue until that
-        // native call returns.
-        //
-        // For long-running Python code, use an async
-        // Android bridge such as executeAsync().
-        // =================================================
+        /*
+         * ------------------------------------------------------------
+         * PYTHON SUCCESS ROUTER
+         * ------------------------------------------------------------
+         *
+         * Android should call:
+         *
+         * window.onPythonResult(output, requestId)
+         */
 
-        setTimeout(() => {
+        window.onPythonResult = function (output, callbackId) {
 
-          finish({
-
-            ok: false,
-
-            output: "",
-
-            value: null,
-
-            error: "timeout",
-
-            traceback:
-              "Python execution exceeded " +
-              timeoutMs +
-              " ms. " +
-              "This timeout does not cancel a blocking native call."
-
-          });
-
-        }, timeoutMs);
-
-      });
-
-    }
+            const specificSuccessHandler =
+                window[callbackId + "_success"];
 
 
-    // ==================================================
-    // RUN PYTHON CODE
-    // ==================================================
+            if (specificSuccessHandler) {
 
-    async function runCode() {
+                specificSuccessHandler(output);
 
-      const pythonCode =
-        codeInput.value;
+            } else {
 
-
-      // ----------------------------------------------
-      // EMPTY CODE
-      // ----------------------------------------------
-
-      if (!pythonCode.trim()) {
-
-        outputBox.textContent =
-          "Please enter Python code.";
-
-        statusBox.textContent =
-          "No Python code entered.";
-
-        return;
-
-      }
-
-
-      // ----------------------------------------------
-      // CHECK BRIDGE
-      // ----------------------------------------------
-
-      if (!isPythonBridgeAvailable()) {
-
-        outputBox.textContent =
-          "Android Python bridge not found.\n\n" +
-
-          "The Android app must expose either:\n\n" +
-
-          "AndroidPythonBridge.execute(code)\n\n" +
-
-          "or:\n\n" +
-
-          "AndroidPython.execute(code)";
-
-        statusBox.textContent =
-          "Bridge not connected.";
-
-        updateBridgeStatus();
-
-        return;
-
-      }
-
-
-      // ----------------------------------------------
-      // UPDATE UI
-      // ----------------------------------------------
-
-      runBtn.disabled = true;
-
-
-      outputBox.textContent =
-        "Running Python...";
-
-
-      statusBox.textContent =
-        "Sending Python code to Android app...";
-
-
-      try {
-
-        // --------------------------------------------
-        // EXECUTE PYTHON
-        // --------------------------------------------
-
-        const result =
-          await execPython(
-
-            pythonCode,
-
-            {
-              timeoutMs: 8000
+                console.log(
+                    "Global Catch - Python Output:",
+                    output
+                );
             }
-
-          );
-
-
-        console.log(
-          "Python result:",
-          result
-        );
+        };
 
 
-        // --------------------------------------------
-        // SUCCESS
-        // --------------------------------------------
+        /*
+         * ------------------------------------------------------------
+         * PYTHON ERROR ROUTER
+         * ------------------------------------------------------------
+         *
+         * Android should call:
+         *
+         * window.onPythonError(errorMessage, requestId)
+         */
 
-        if (result.ok === true) {
+        window.onPythonError = function (errorMessage, callbackId) {
 
-          let displayText = "";
-
-
-          // ==========================================
-          // PRINT OUTPUT
-          // ==========================================
-
-          if (
-
-            result.output !== null &&
-
-            result.output !== undefined &&
-
-            String(result.output) !== ""
-
-          ) {
-
-            displayText +=
-              String(result.output);
-
-          }
+            const specificErrorHandler =
+                window[callbackId + "_error"];
 
 
-          // ==========================================
-          // __result__
-          // ==========================================
+            if (specificErrorHandler) {
 
-          if (
+                specificErrorHandler(errorMessage);
 
-            result.value !== null &&
+            } else {
 
-            result.value !== undefined
+                console.error(
+                    "Global Catch - Python Error:",
+                    errorMessage
+                );
+            }
+        };
 
-          ) {
 
-            if (displayText !== "") {
+        /*
+         * ------------------------------------------------------------
+         * SEND BUTTON
+         * ------------------------------------------------------------
+         */
 
-              displayText +=
-                "\n\n";
+        function sendPythonCode() {
 
+            const codeBox =
+                document.getElementById("pythonCode");
+
+            const outputBox =
+                document.getElementById("output");
+
+            const sendButton =
+                document.getElementById("sendButton");
+
+
+            const pythonCode =
+                codeBox.value.trim();
+
+
+            /*
+             * Don't allow empty code.
+             */
+
+            if (!pythonCode) {
+
+                outputBox.className = "output error";
+
+                outputBox.textContent =
+                    "Please enter Python code first.";
+
+                return;
             }
 
 
-            displayText +=
-              "Result: " +
-              formatPythonValue(result.value);
+            /*
+             * Check Android connection.
+             */
 
-          }
+            if (!window.AndroidPython ||
+                typeof window.AndroidPython.executePython !== "function") {
 
+                outputBox.className = "output error";
 
-          // ==========================================
-          // NOTHING RETURNED
-          // ==========================================
+                outputBox.textContent =
+                    "YAN1 Android App is not connected.\n\n" +
+                    "Please open this page inside the YAN1 App.";
 
-          if (displayText === "") {
+                checkYAN1Connection();
 
-            displayText =
-              "Python finished successfully with no output.";
-
-          }
-
-
-          outputBox.textContent =
-            displayText;
+                return;
+            }
 
 
-          statusBox.textContent =
-            "Python execution completed.";
+            /*
+             * Disable button while executing.
+             */
 
+            sendButton.disabled = true;
+            sendButton.textContent = "Running...";
+
+
+            outputBox.className = "output waiting";
+
+            outputBox.textContent =
+                "Executing Python code...";
+
+
+            /*
+             * Send code to Android.
+             */
+
+            runPythonOnDevice(
+
+                pythonCode,
+
+                function (output) {
+
+                    /*
+                     * SUCCESS
+                     */
+
+                    outputBox.className = "output success";
+
+                    if (output === undefined ||
+                        output === null ||
+                        output === "") {
+
+                        outputBox.textContent =
+                            "Python executed successfully.\n" +
+                            "No output was returned.";
+
+                    } else {
+
+                        outputBox.textContent =
+                            String(output);
+                    }
+
+
+                    sendButton.disabled = false;
+                    sendButton.textContent =
+                        "Send Python Code";
+                },
+
+
+                function (errorLog) {
+
+                    /*
+                     * ERROR
+                     */
+
+                    outputBox.className = "output error";
+
+                    outputBox.textContent =
+                        String(errorLog);
+
+
+                    sendButton.disabled = false;
+                    sendButton.textContent =
+                        "Send Python Code";
+                }
+            );
         }
 
 
-        // --------------------------------------------
-        // ERROR
-        // --------------------------------------------
+        /*
+         * ------------------------------------------------------------
+         * ENTER KEY
+         * ------------------------------------------------------------
+         *
+         * Ctrl + Enter / Android keyboard equivalent can send code.
+         */
 
-        else {
+        document
+            .getElementById("pythonCode")
+            .addEventListener("keydown", function (event) {
 
-          let errorText =
-            "Python execution failed.";
+                if (event.ctrlKey && event.key === "Enter") {
 
+                    event.preventDefault();
 
-          if (result.error) {
-
-            errorText +=
-              "\n\nError:\n" +
-              String(result.error);
-
-          }
-
-
-          if (result.traceback) {
-
-            errorText +=
-              "\n\nTraceback:\n" +
-              String(result.traceback);
-
-          }
+                    sendPythonCode();
+                }
+            });
 
 
-          if (result.output) {
+        /*
+         * ------------------------------------------------------------
+         * AUTOMATIC CONNECTION CHECK
+         * ------------------------------------------------------------
+         *
+         * Check immediately and again shortly afterward because
+         * Android's JavaScript bridge may become available after
+         * the webpage initially loads.
+         */
 
-            errorText +=
-              "\n\nOutput before error:\n" +
-              String(result.output);
-
-          }
-
-
-          outputBox.textContent =
-            errorText;
-
-
-          statusBox.textContent =
-            "Python execution failed.";
-
-        }
-
-      }
+        checkYAN1Connection();
 
 
-      catch (error) {
-
-        console.error(
-          "Python execution error:",
-          error
-        );
+        setTimeout(function () {
+            checkYAN1Connection();
+        }, 500);
 
 
-        outputBox.textContent =
-          "JavaScript / Android Bridge Error:\n\n" +
-          String(error);
+        setTimeout(function () {
+            checkYAN1Connection();
+        }, 1500);
 
 
-        statusBox.textContent =
-          "Failed to execute Python.";
-
-      }
-
-
-      // ----------------------------------------------
-      // ENABLE BUTTON
-      // ----------------------------------------------
-
-      runBtn.disabled = false;
-
-    }
+        setInterval(function () {
+            checkYAN1Connection();
+        }, 3000);
 
 
-    // ==================================================
-    // FORMAT RESULT
-    // ==================================================
-
-    function formatPythonValue(value) {
-
-      if (typeof value === "object") {
-
-        try {
-
-          return JSON.stringify(
-            value,
-            null,
-            2
-          );
-
-        }
-
-        catch (error) {
-
-          return String(value);
-
-        }
-
-      }
-
-
-      return String(value);
-
-    }
-
-
-    // ==================================================
-    // BUTTON
-    // ==================================================
-
-    runBtn.addEventListener(
-      "click",
-      runCode
-    );
-
-
-    // ==================================================
-    // INITIAL BRIDGE CHECK
-    // ==================================================
-
-    updateBridgeStatus();
-
-
-    // Android bridge may become available shortly
-    // after the WebView loads.
-
-    setTimeout(
-      updateBridgeStatus,
-      500
-    );
-
-
-    setTimeout(
-      updateBridgeStatus,
-      1500
-    );
-
-
-  </script>
+    </script>
 
 </body>
 
