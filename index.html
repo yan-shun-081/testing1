@@ -47,6 +47,10 @@
             color: #ff5c5c;
         }
 
+        .not-installed {
+            color: #ffb84d;
+        }
+
         .box {
             background: #15151f;
             border: 1px solid #2c2c3a;
@@ -216,7 +220,7 @@ function checkYAN1Connection() {
         appConnected = false;
 
         status.textContent =
-            "● Running in Chrome / Browser";
+            "● Checking for YAN1 App...";
 
         status.className =
             "connection disconnected";
@@ -225,48 +229,70 @@ function checkYAN1Connection() {
 
 
 /* ============================================================
-   AUTO OPEN YAN1 APP
+   OPEN CURRENT WEBSITE IN YAN1 APP
    ============================================================
 
-   If already inside the app:
-       DO NOTHING.
+   IMPORTANT:
 
-   If opened in Chrome:
-       Open the HTTPS App Link.
+   There is NO hardcoded website URL here.
 
-   If the app is installed and App Links are configured:
-       Android opens the app.
+   window.location.href automatically gives the
+   CURRENT page URL.
 
-   If the app is not installed:
-       Chrome continues to display the website.
+   Example:
+
+   If the user is currently on:
+   https://example.com/page1
+
+   that exact URL is sent to the Android app.
+
+   If the user is already inside YAN1 App:
+       NOTHING happens.
 
    ============================================================ */
 
-function tryOpenYAN1App() {
+function openCurrentPageInYAN1App() {
 
-    /* Already inside YAN1 App */
+    /* Already inside the app */
     if (isYAN1App()) {
 
         console.log(
-            "YAN1 App already detected. No action needed."
+            "Already running inside YAN1 App."
         );
 
         return;
     }
 
+
     /*
-     * Prevent repeated attempts during this
-     * browser session.
+     * Get the current page URL dynamically.
+     *
+     * No website URL is hardcoded.
      */
 
-    if (
-        sessionStorage.getItem(
-            "yan1_app_open_attempted"
-        ) === "true"
-    ) {
+    const currentPageURL =
+        window.location.href;
 
-        return;
-    }
+
+    /*
+     * Android intent URI.
+     *
+     * The current URL is passed to Android.
+     */
+
+    const intentURL =
+        "intent:" +
+        currentPageURL +
+        "#Intent;" +
+        "scheme=https;" +
+        "package=com.example1.yan1appgen1;" +
+        "end";
+
+
+    /*
+     * Remember that we attempted to open
+     * the Android app.
+     */
 
     sessionStorage.setItem(
         "yan1_app_open_attempted",
@@ -275,18 +301,50 @@ function tryOpenYAN1App() {
 
 
     /*
-     * Your GitHub Pages URL.
+     * Try opening YAN1 App.
      */
 
-    const appLink =
-        "https://yan-shun-081.github.io/yan-1-website.com/";
+    window.location.href = intentURL;
 
 
     /*
-     * Open HTTPS App Link.
+     * If Android does not launch the app,
+     * the browser remains available.
+     *
+     * After a short delay we show the
+     * "App not installed" message.
      */
 
-    window.location.href = appLink;
+    setTimeout(function() {
+
+        if (!isYAN1App()) {
+
+            showAppNotInstalledMessage();
+
+        }
+
+    }, 1800);
+}
+
+
+/* ============================================================
+   APP NOT INSTALLED MESSAGE
+   ============================================================ */
+
+function showAppNotInstalledMessage() {
+
+    if (isYAN1App()) {
+        return;
+    }
+
+    const status =
+        document.getElementById("connectionStatus");
+
+    status.textContent =
+        "● YAN1 App is not installed";
+
+    status.className =
+        "connection not-installed";
 }
 
 
@@ -385,19 +443,12 @@ function runPythonOnDevice(
 function cleanupTrackers(id) {
 
     delete window[id + "_success"];
-
     delete window[id + "_error"];
 }
 
 
 /* ============================================================
    PYTHON SUCCESS ROUTER
-   ============================================================
-
-   Android calls:
-
-   window.onPythonResult(output, requestId)
-
    ============================================================ */
 
 window.onPythonResult =
@@ -422,12 +473,6 @@ window.onPythonResult =
 
 /* ============================================================
    PYTHON ERROR ROUTER
-   ============================================================
-
-   Android calls:
-
-   window.onPythonError(errorMessage, requestId)
-
    ============================================================ */
 
 window.onPythonError =
@@ -626,21 +671,24 @@ setTimeout(
 
 
 /* ============================================================
-   AUTO APP OPEN
+   AUTO OPEN APP
    ============================================================
 
-   Wait 1.2 seconds.
+   If already inside app:
+       NOTHING.
 
-   If AndroidPython exists:
-       Already inside app -> NOTHING.
-
-   If AndroidPython does not exist:
-       Browser -> try HTTPS App Link.
+   If in Chrome:
+       Attempt to open the CURRENT page
+       inside YAN1 App.
 
    ============================================================ */
 
 setTimeout(
     function() {
+
+        /*
+         * Already inside app.
+         */
 
         if (isYAN1App()) {
 
@@ -652,7 +700,29 @@ setTimeout(
         }
 
 
-        tryOpenYAN1App();
+        /*
+         * Don't repeatedly attempt the
+         * app launch during this session.
+         */
+
+        if (
+            sessionStorage.getItem(
+                "yan1_app_open_attempted"
+            ) === "true"
+        ) {
+
+            showAppNotInstalledMessage();
+
+            return;
+        }
+
+
+        /*
+         * Try to open the current page
+         * in YAN1 App.
+         */
+
+        openCurrentPageInYAN1App();
 
     },
     1200
