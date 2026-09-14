@@ -132,437 +132,547 @@
 
 <body>
 
-    <div class="container">
+<div class="container">
 
-        <h1>YAN1 Python Runner</h1>
+    <h1>YAN1 Python Runner</h1>
 
-        <div id="connectionStatus" class="connection disconnected">
-            Connecting to YAN1 App...
-        </div>
+    <div id="connectionStatus"
+         class="connection disconnected">
+        Checking YAN1 App...
+    </div>
 
-        <div class="box">
+    <div class="box">
 
-            <label for="pythonCode">
-                Enter Python Code
-            </label>
+        <label for="pythonCode">
+            Enter Python Code
+        </label>
 
-            <textarea id="pythonCode" spellcheck="false"
-                placeholder="print('Hello from YAN1!')"></textarea>
+        <textarea
+            id="pythonCode"
+            spellcheck="false"
+            placeholder="print('Hello from YAN1!')"></textarea>
 
-            <button id="sendButton" onclick="sendPythonCode()">
-                Send Python Code
-            </button>
+        <button
+            id="sendButton"
+            onclick="sendPythonCode()">
+            Send Python Code
+        </button>
 
-        </div>
+    </div>
 
-        <div class="box">
+    <div class="box">
 
-            <label>
-                Python Output
-            </label>
+        <label>
+            Python Output
+        </label>
 
-            <div id="output" class="output waiting">
-                Waiting for Python execution...
-            </div>
-
+        <div id="output"
+             class="output waiting">
+            Waiting for Python execution...
         </div>
 
     </div>
 
+</div>
 
-    <script>
+<script>
 
-        /*
-         * ============================================================
-         * YAN1 PYTHON CONNECTION
-         * ============================================================
-         *
-         * The Android app must provide:
-         *
-         * window.AndroidPython.executePython(pythonCode, requestId)
-         *
-         * The Android app must call:
-         *
-         * window.onPythonResult(output, requestId)
-         *
-         * or:
-         *
-         * window.onPythonError(errorMessage, requestId)
-         *
-         */
+/* ============================================================
+   YAN1 APP DETECTION
+   ============================================================ */
+
+function isYAN1App() {
+
+    return (
+        window.AndroidPython &&
+        typeof window.AndroidPython.executePython === "function"
+    );
+}
 
 
-        let appConnected = false;
+/* ============================================================
+   CONNECTION STATUS
+   ============================================================ */
+
+let appConnected = false;
+
+function checkYAN1Connection() {
+
+    const status =
+        document.getElementById("connectionStatus");
+
+    if (isYAN1App()) {
+
+        appConnected = true;
+
+        status.textContent =
+            "● Connected to YAN1 App";
+
+        status.className =
+            "connection connected";
+
+    } else {
+
+        appConnected = false;
+
+        status.textContent =
+            "● Running in Chrome / Browser";
+
+        status.className =
+            "connection disconnected";
+    }
+}
 
 
-        /*
-         * ------------------------------------------------------------
-         * CHECK CONNECTION
-         * ------------------------------------------------------------
-         *
-         * The page automatically checks whether it is running
-         * inside the YAN1 Android app.
-         */
+/* ============================================================
+   AUTO OPEN YAN1 APP
+   ============================================================
 
-        function checkYAN1Connection() {
+   If already inside the app:
+       DO NOTHING.
 
-            const status = document.getElementById("connectionStatus");
+   If opened in Chrome:
+       Open the HTTPS App Link.
 
-            if (window.AndroidPython &&
-                typeof window.AndroidPython.executePython === "function") {
+   If the app is installed and App Links are configured:
+       Android opens the app.
 
-                appConnected = true;
+   If the app is not installed:
+       Chrome continues to display the website.
 
-                status.textContent = "● Connected to YAN1 App";
-                status.className = "connection connected";
+   ============================================================ */
 
-            } else {
+function tryOpenYAN1App() {
 
-                appConnected = false;
+    /* Already inside YAN1 App */
+    if (isYAN1App()) {
 
-                status.textContent =
-                    "● Not connected — Open this page inside YAN1 App";
+        console.log(
+            "YAN1 App already detected. No action needed."
+        );
 
-                status.className = "connection disconnected";
-            }
+        return;
+    }
+
+    /*
+     * Prevent repeated attempts during this
+     * browser session.
+     */
+
+    if (
+        sessionStorage.getItem(
+            "yan1_app_open_attempted"
+        ) === "true"
+    ) {
+
+        return;
+    }
+
+    sessionStorage.setItem(
+        "yan1_app_open_attempted",
+        "true"
+    );
+
+
+    /*
+     * Your GitHub Pages URL.
+     */
+
+    const appLink =
+        "https://yan-shun-081.github.io/yan-1-website.com/";
+
+
+    /*
+     * Open HTTPS App Link.
+     */
+
+    window.location.href = appLink;
+}
+
+
+/* ============================================================
+   PYTHON EXECUTION
+   ============================================================ */
+
+function runPythonOnDevice(
+    pythonCode,
+    onSuccess,
+    onError
+) {
+
+    if (!isYAN1App()) {
+
+        const errorMessage =
+            "Execution failed:\n\n" +
+            "YAN1 Android App is not connected.\n" +
+            "Please open this page inside the YAN1 App.";
+
+        console.error(errorMessage);
+
+        if (onError) {
+            onError(errorMessage);
         }
 
+        return;
+    }
 
-        /*
-         * ------------------------------------------------------------
-         * RUN PYTHON ON DEVICE
-         * ------------------------------------------------------------
-         */
 
-        function runPythonOnDevice(pythonCode, onSuccess, onError) {
+    /*
+     * Unique request ID.
+     */
 
-            // Check Android bridge
+    const requestId =
+        "py_req_" +
+        Date.now() +
+        "_" +
+        Math.floor(Math.random() * 100000);
 
-            if (!window.AndroidPython ||
-                typeof window.AndroidPython.executePython !== "function") {
 
-                const fallbackMsg =
-                    "Execution failed: Not running inside the YAN1 APP environment.";
+    /*
+     * Success callback.
+     */
 
-                console.error(fallbackMsg);
+    window[requestId + "_success"] =
+        function(output) {
 
-                if (onError) {
-                    onError(fallbackMsg);
-                }
-
-                return;
+            if (onSuccess) {
+                onSuccess(output);
             }
 
-
-            /*
-             * Create unique ID for this execution.
-             */
-
-            const requestId =
-                "py_req_" +
-                Date.now() +
-                "_" +
-                Math.floor(Math.random() * 1000);
-
-
-            /*
-             * Create temporary success callback.
-             */
-
-            window[requestId + "_success"] = function (output) {
-
-                if (onSuccess) {
-                    onSuccess(output);
-                }
-
-                cleanupTrackers(requestId);
-            };
-
-
-            /*
-             * Create temporary error callback.
-             */
-
-            window[requestId + "_error"] = function (errorLog) {
-
-                if (onError) {
-                    onError(errorLog);
-                }
-
-                cleanupTrackers(requestId);
-            };
-
-
-            /*
-             * Send Python code to Android.
-             */
-
-            try {
-
-                window.AndroidPython.executePython(
-                    pythonCode,
-                    requestId
-                );
-
-            } catch (error) {
-
-                window[requestId + "_error"](
-                    error.toString()
-                );
-            }
-        }
-
-
-        /*
-         * ------------------------------------------------------------
-         * CLEAN TEMPORARY CALLBACKS
-         * ------------------------------------------------------------
-         */
-
-        function cleanupTrackers(id) {
-
-            delete window[id + "_success"];
-            delete window[id + "_error"];
-        }
-
-
-        /*
-         * ------------------------------------------------------------
-         * PYTHON SUCCESS ROUTER
-         * ------------------------------------------------------------
-         *
-         * Android should call:
-         *
-         * window.onPythonResult(output, requestId)
-         */
-
-        window.onPythonResult = function (output, callbackId) {
-
-            const specificSuccessHandler =
-                window[callbackId + "_success"];
-
-
-            if (specificSuccessHandler) {
-
-                specificSuccessHandler(output);
-
-            } else {
-
-                console.log(
-                    "Global Catch - Python Output:",
-                    output
-                );
-            }
+            cleanupTrackers(requestId);
         };
 
 
-        /*
-         * ------------------------------------------------------------
-         * PYTHON ERROR ROUTER
-         * ------------------------------------------------------------
-         *
-         * Android should call:
-         *
-         * window.onPythonError(errorMessage, requestId)
-         */
+    /*
+     * Error callback.
+     */
 
-        window.onPythonError = function (errorMessage, callbackId) {
+    window[requestId + "_error"] =
+        function(errorLog) {
 
-            const specificErrorHandler =
-                window[callbackId + "_error"];
-
-
-            if (specificErrorHandler) {
-
-                specificErrorHandler(errorMessage);
-
-            } else {
-
-                console.error(
-                    "Global Catch - Python Error:",
-                    errorMessage
-                );
+            if (onError) {
+                onError(errorLog);
             }
+
+            cleanupTrackers(requestId);
         };
 
 
-        /*
-         * ------------------------------------------------------------
-         * SEND BUTTON
-         * ------------------------------------------------------------
-         */
+    /*
+     * Send Python code to Android.
+     */
 
-        function sendPythonCode() {
+    try {
 
-            const codeBox =
-                document.getElementById("pythonCode");
+        window.AndroidPython.executePython(
+            pythonCode,
+            requestId
+        );
 
-            const outputBox =
-                document.getElementById("output");
+    } catch (error) {
 
-            const sendButton =
-                document.getElementById("sendButton");
-
-
-            const pythonCode =
-                codeBox.value.trim();
+        window[requestId + "_error"](
+            error.toString()
+        );
+    }
+}
 
 
-            /*
-             * Don't allow empty code.
-             */
+/* ============================================================
+   CLEAN CALLBACKS
+   ============================================================ */
 
-            if (!pythonCode) {
+function cleanupTrackers(id) {
 
-                outputBox.className = "output error";
+    delete window[id + "_success"];
 
-                outputBox.textContent =
-                    "Please enter Python code first.";
-
-                return;
-            }
+    delete window[id + "_error"];
+}
 
 
-            /*
-             * Check Android connection.
-             */
+/* ============================================================
+   PYTHON SUCCESS ROUTER
+   ============================================================
 
-            if (!window.AndroidPython ||
-                typeof window.AndroidPython.executePython !== "function") {
+   Android calls:
 
-                outputBox.className = "output error";
+   window.onPythonResult(output, requestId)
 
-                outputBox.textContent =
-                    "YAN1 Android App is not connected.\n\n" +
-                    "Please open this page inside the YAN1 App.";
+   ============================================================ */
 
-                checkYAN1Connection();
+window.onPythonResult =
+    function(output, callbackId) {
 
-                return;
-            }
+        const handler =
+            window[callbackId + "_success"];
 
+        if (handler) {
 
-            /*
-             * Disable button while executing.
-             */
+            handler(output);
 
-            sendButton.disabled = true;
-            sendButton.textContent = "Running...";
+        } else {
 
-
-            outputBox.className = "output waiting";
-
-            outputBox.textContent =
-                "Executing Python code...";
-
-
-            /*
-             * Send code to Android.
-             */
-
-            runPythonOnDevice(
-
-                pythonCode,
-
-                function (output) {
-
-                    /*
-                     * SUCCESS
-                     */
-
-                    outputBox.className = "output success";
-
-                    if (output === undefined ||
-                        output === null ||
-                        output === "") {
-
-                        outputBox.textContent =
-                            "Python executed successfully.\n" +
-                            "No output was returned.";
-
-                    } else {
-
-                        outputBox.textContent =
-                            String(output);
-                    }
-
-
-                    sendButton.disabled = false;
-                    sendButton.textContent =
-                        "Send Python Code";
-                },
-
-
-                function (errorLog) {
-
-                    /*
-                     * ERROR
-                     */
-
-                    outputBox.className = "output error";
-
-                    outputBox.textContent =
-                        String(errorLog);
-
-
-                    sendButton.disabled = false;
-                    sendButton.textContent =
-                        "Send Python Code";
-                }
+            console.log(
+                "Python Output:",
+                output
             );
         }
+    };
 
 
-        /*
-         * ------------------------------------------------------------
-         * ENTER KEY
-         * ------------------------------------------------------------
-         *
-         * Ctrl + Enter / Android keyboard equivalent can send code.
-         */
+/* ============================================================
+   PYTHON ERROR ROUTER
+   ============================================================
 
-        document
-            .getElementById("pythonCode")
-            .addEventListener("keydown", function (event) {
+   Android calls:
 
-                if (event.ctrlKey && event.key === "Enter") {
+   window.onPythonError(errorMessage, requestId)
 
-                    event.preventDefault();
+   ============================================================ */
 
-                    sendPythonCode();
-                }
-            });
+window.onPythonError =
+    function(errorMessage, callbackId) {
+
+        const handler =
+            window[callbackId + "_error"];
+
+        if (handler) {
+
+            handler(errorMessage);
+
+        } else {
+
+            console.error(
+                "Python Error:",
+                errorMessage
+            );
+        }
+    };
 
 
-        /*
-         * ------------------------------------------------------------
-         * AUTOMATIC CONNECTION CHECK
-         * ------------------------------------------------------------
-         *
-         * Check immediately and again shortly afterward because
-         * Android's JavaScript bridge may become available after
-         * the webpage initially loads.
-         */
+/* ============================================================
+   SEND PYTHON CODE
+   ============================================================ */
+
+function sendPythonCode() {
+
+    const codeBox =
+        document.getElementById("pythonCode");
+
+    const outputBox =
+        document.getElementById("output");
+
+    const sendButton =
+        document.getElementById("sendButton");
+
+
+    const pythonCode =
+        codeBox.value.trim();
+
+
+    /* Empty code */
+
+    if (!pythonCode) {
+
+        outputBox.className =
+            "output error";
+
+        outputBox.textContent =
+            "Please enter Python code first.";
+
+        return;
+    }
+
+
+    /* Check app */
+
+    if (!isYAN1App()) {
+
+        outputBox.className =
+            "output error";
+
+        outputBox.textContent =
+            "YAN1 Android App is not connected.\n\n" +
+            "Please open this page inside the YAN1 App.";
 
         checkYAN1Connection();
 
-
-        setTimeout(function () {
-            checkYAN1Connection();
-        }, 500);
+        return;
+    }
 
 
-        setTimeout(function () {
-            checkYAN1Connection();
-        }, 1500);
+    /* Disable button */
+
+    sendButton.disabled = true;
+
+    sendButton.textContent =
+        "Running...";
 
 
-        setInterval(function () {
-            checkYAN1Connection();
-        }, 3000);
+    outputBox.className =
+        "output waiting";
+
+    outputBox.textContent =
+        "Executing Python code...";
 
 
-    </script>
+    /* Execute */
+
+    runPythonOnDevice(
+
+        pythonCode,
+
+
+        /* SUCCESS */
+
+        function(output) {
+
+            outputBox.className =
+                "output success";
+
+
+            if (
+                output === undefined ||
+                output === null ||
+                output === ""
+            ) {
+
+                outputBox.textContent =
+                    "Python executed successfully.\n" +
+                    "No output was returned.";
+
+            } else {
+
+                outputBox.textContent =
+                    String(output);
+            }
+
+
+            sendButton.disabled = false;
+
+            sendButton.textContent =
+                "Send Python Code";
+        },
+
+
+        /* ERROR */
+
+        function(errorLog) {
+
+            outputBox.className =
+                "output error";
+
+            outputBox.textContent =
+                String(errorLog);
+
+
+            sendButton.disabled = false;
+
+            sendButton.textContent =
+                "Send Python Code";
+        }
+    );
+}
+
+
+/* ============================================================
+   CTRL + ENTER
+   ============================================================ */
+
+document
+    .getElementById("pythonCode")
+    .addEventListener(
+        "keydown",
+        function(event) {
+
+            if (
+                event.ctrlKey &&
+                event.key === "Enter"
+            ) {
+
+                event.preventDefault();
+
+                sendPythonCode();
+            }
+        }
+    );
+
+
+/* ============================================================
+   INITIAL CONNECTION CHECK
+   ============================================================ */
+
+checkYAN1Connection();
+
+
+/* ============================================================
+   WAIT FOR ANDROID BRIDGE
+   ============================================================ */
+
+setTimeout(
+    checkYAN1Connection,
+    300
+);
+
+setTimeout(
+    checkYAN1Connection,
+    1000
+);
+
+setTimeout(
+    checkYAN1Connection,
+    2000
+);
+
+
+/* ============================================================
+   AUTO APP OPEN
+   ============================================================
+
+   Wait 1.2 seconds.
+
+   If AndroidPython exists:
+       Already inside app -> NOTHING.
+
+   If AndroidPython does not exist:
+       Browser -> try HTTPS App Link.
+
+   ============================================================ */
+
+setTimeout(
+    function() {
+
+        if (isYAN1App()) {
+
+            console.log(
+                "YAN1 App detected. No redirect."
+            );
+
+            return;
+        }
+
+
+        tryOpenYAN1App();
+
+    },
+    1200
+);
+
+
+/* ============================================================
+   PERIODIC CONNECTION CHECK
+   ============================================================ */
+
+setInterval(
+    function() {
+
+        checkYAN1Connection();
+
+    },
+    3000
+);
+
+</script>
 
 </body>
 
